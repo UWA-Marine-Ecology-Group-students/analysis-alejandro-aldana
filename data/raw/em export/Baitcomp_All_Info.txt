@@ -1,0 +1,101 @@
+OpCode	TapeReader	Depth	Comment	Info5Name	Info5Value	Info6Name	Info6Value	Info7Name	Info7Value	Info8Name	Info8Value	Info9Name	Info9Value	Info10Name	Info10Value	Info11Name	Info11Value	Info12Name	Info12Value
+001_03112024	Alejandro	15																	
+003	Alejandro	29																	
+GX010093_005	Alejandro	28																	
+006	Alejandro	29																	
+GX012828	Alejandro	26																	
+008	Alejandro	29																	
+009	Alejandro	30	Octopus bait																
+010	Alejandro	17																	
+011	Alejandro	15																	
+012	Alejandro	20																	
+013	Alejandro	18																	
+016	Courtney																		
+017	Courtney																		
+018	Courtney																		
+019	Courtney																		
+020	Courtney																		
+021	Courtney																		
+022	Courtney																		
+023	Courtney																		
+024	Courtney																		
+025	Courtney																		
+026	Courtney																		
+027	Courtney																		
+028	Alejandro	20																	
+029	Alejandro	21																	
+030	Alejandro	21																	
+031	Alejandro	24																	
+032	Alejandro	13																	
+033	Alejandro	21																	
+034	Alejandro	12																	
+035	Alejandro	18																	
+036	Alejandro	8																	
+037	Alejandro	19																	
+038	Alejandro	22																	
+039	Alejandro	16																	
+041	Alejandro	26																	
+042	Alejandro	11																	
+043	Alejandro	12																	
+044	Alejandro	15																	
+045	Alejandro	18																	
+046	Alejandro	10																	
+047	Alejandro	6																	
+048	Alejandro	14																	
+049	Alejandro	9																	
+050	Alejandro	10																	
+051	Alejandro	14																	
+052	Alejandro	10																	
+053	Alejandro	15																	
+054	Alejandro	8																	
+055	Alejandro	15																	
+057	Alejandro	15																	
+058	Alejandro	14																	
+059	Alejandro	12																	
+060	Alejandro	17																	
+061	Alejandro	12																	
+062	Alejandro	18																	
+063	Alejandro	25																	
+064	Alejandro	20																	
+065	Alejandro	15																	
+066	Alejandro	12																	
+067	Alejandro	15																	
+068	Alejandro	25																	
+069	Alejandro	11																	
+070	Alejandro	26																	
+072	Alejandro	13																	
+073	Alejandro	10																	
+074	Alejandro	14																	
+075	Alejandro	26																	
+076	Alejandro	26																	
+077	Alejandro	25																	
+078	Alejandro	22																	
+079	Alejandro	19																	
+080	Alejandro	21																	
+081	Alejandro	10																	
+082	Alejandro	21																	
+083	Alejandro	17																	
+084	Alejandro	19																	
+085	Alejandro	12																	
+087	Alejandro	8																	
+088	Alejandro	28																	
+089	Alejandro	17																	
+090	Alejandro	20																	
+091	Alejandro	18																	
+092	Alejandro	32																	
+093	Alejandro	21	pilchard																
+094	Alejandro	25																	
+095	Alejandro	25																	
+096	Alejandro	25																	
+097	Alejandro	18																	
+098	Alejandro	24																	
+099	Alejandro	20																	
+100	Alejandro	26																	
+101	Alejandro	29																	
+102	Alejandro	24	Pilchard																
+103	Alejandro	17	Abalone																
+104	Alejandro	17																	
+105	Alejandro	5																	
+106	Alejandro	8																	
+107	Alejandro	9																	
+108	Alejandro	18																	
