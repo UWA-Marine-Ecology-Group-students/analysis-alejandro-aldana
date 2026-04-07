@@ -1,7 +1,6 @@
 rm(list=ls()) # to clean the environment
 # install.packages('remotes')
 library('remotes')
-options(timeout=9999999)
 # remotes::install_github("GlobalArchiveManual/CheckEM")
 library(CheckEM)
 library(dplyr)
@@ -157,4 +156,7 @@ points_without_number <- points %>%
 
 message(paste(nrow(points_without_number), "points in the _Points.txt file that do not have a number"))
 
-# 
+# save the checked data
+saveRDS(complete_count,
+        file = here::here(paste0("./data/staging/",
+                                 name, "_complete-count.rds")))
