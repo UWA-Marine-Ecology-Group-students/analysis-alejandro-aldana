@@ -99,7 +99,7 @@ duplicate_samples <- metadata %>%
 # Number of sample(s) without points or count data
 metadata_samples <- metadata %>%
   dplyr::select(opcode, dplyr::any_of(c("opcode", "period")),
-                successful_count, successful_length) %>%
+                successful_count) %>%
   distinct()
 
 samples <- maxn_points %>%

@@ -1,9 +1,9 @@
 OpCode	TapeReader	Depth	Comment	Info5Name	Info5Value	Info6Name	Info6Value	Info7Name	Info7Value	Info8Name	Info8Value	Info9Name	Info9Value	Info10Name	Info10Value	Info11Name	Info11Value	Info12Name	Info12Value
-001_03112024	Alejandro	15																	
+001	Alejandro	15																	
 003	Alejandro	29																	
-GX010093_005	Alejandro	28																	
+005	Alejandro	28																	
 006	Alejandro	29																	
-GX012828	Alejandro	26																	
+007	Alejandro	26																	
 008	Alejandro	29																	
 009	Alejandro	30	Octopus bait																
 010	Alejandro	17																	
