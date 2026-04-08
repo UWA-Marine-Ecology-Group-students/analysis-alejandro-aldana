@@ -3,7 +3,9 @@
 ###############################################################################
 
 rm(list=ls()) # Clear memory
-
+install.packages("MuMIn")
+install.packages("DHARMa")
+install.packages("bbmle")
 # libraries----
 #library(devtools)
 library(CheckEM)
@@ -11,12 +13,11 @@ library(tidyverse)
 library(MuMIn)
 library(car)
 library(ggplot2)
-# library(lme4)
 library(cowplot)
 library(emmeans)
 library(glmmTMB)
 library(DHARMa)
-library("bbmle") #for AICtab
+library(bbmle) #for AICtab
 library(patchwork) #for joining the plots on the pdf
 
 
@@ -25,15 +26,16 @@ library(patchwork) #for joining the plots on the pdf
 
 
 ## read in habitat data
-habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_full.habitat.rds")%>%
+habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
+  clean_names()%>%
   glimpse()
 
 ## read in Count data & join
 
-dat <- readRDS("./data/tidy/.RDS") %>% ##update with your count dataframe
-  left_join(habitat)%>%
-  clean_names() %>%
-  glimpse()
+# complete.count <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ##update with your count dataframe
+#   left_join(habitat)%>%
+#   clean_names() %>%
+#   glimpse()
 
 
 
@@ -48,11 +50,11 @@ dat <- readRDS("./data/tidy/.RDS") %>% ##update with your count dataframe
 resp_vars <- c( "macroalgae" ,"scytothalia", "ecklonia", "sargassum", "canopy",                      
                 "sessile_inverts", "substrate_hard", "sand", "reef", "posidonia",
                 "sessile_biota", "ascidians", "sponges", "unkn_canopy", 
-                "mean_relief", "depth_m", "time_hr", "sd_relief", 
+                "mean_relief", "sd_relief" 
                 # "distance_km"
                 ) 
 
-summary(all.counts[,resp_vars])
+summary(habitat[,resp_vars])
 
 #------------------------------------------------------------------------
 # Removing covariates with too many zeros
@@ -62,10 +64,10 @@ zero_threshold <- 0.70
 
 # Calculate proportion of zeros for each variable
 zero_proportions <- sapply(resp_vars, function(v) {
-  if (!v %in% names(all.counts)) return(NA)
-  if (!is.numeric(all.counts[[v]])) return(NA)
+  if (!v %in% names(habitat)) return(NA)
+  if (!is.numeric(habitat[[v]])) return(NA)
   
-  x <- all.counts[[v]]
+  x <- habitat[[v]]
   prop_zeros <- sum(x == 0, na.rm = TRUE) / sum(!is.na(x))
   return(prop_zeros)
 })
@@ -73,7 +75,7 @@ zero_proportions <- sapply(resp_vars, function(v) {
 # Identify variables to remove
 vars_to_remove <- names(zero_proportions[zero_proportions > zero_threshold])
 
-# Print summary
+#Print summary
 cat("\nZero proportion for each variable:\n")
 print(round(zero_proportions, 3))
 cat("\n\nVariables with >", zero_threshold * 100, "% zeros (to be removed):\n", sep = "")
@@ -95,10 +97,10 @@ resp_vars <- resp_vars_filtered
 #------------------------------------------------------------------------
 for (v in resp_vars) {
   
-  if (!v %in% names(all.counts)) next
-  if (!is.numeric(all.counts[[v]])) next
+  if (!v %in% names(habitat)) next
+  if (!is.numeric(habitat[[v]])) next
   
-  x <- all.counts[[v]]
+  x <- habitat[[v]]
   
   # --------- ADAPTIVE BINWIDTH ---------
   if (grepl("cover", v)) {
@@ -131,7 +133,7 @@ for (v in resp_vars) {
   x_sqrt <- sqrt(x)
   
   # RAW HIST (top left)
-  p1 <- ggplot(all.counts, aes(x = x)) +
+  p1 <- ggplot(habitat, aes(x = x)) +
     geom_histogram(binwidth = binw_raw, colour = "black", fill = "skyblue") +
     labs(title = paste(v, "— Raw"),
          x = x_label_raw,
@@ -139,7 +141,7 @@ for (v in resp_vars) {
     theme_bw()
   
   # LOG HIST (top right)
-  p2 <- ggplot(all.counts, aes(x = x_log)) +
+  p2 <- ggplot(habitat, aes(x = x_log)) +
     geom_histogram(binwidth = binw_log, colour = "black", fill = "skyblue") +
     labs(title = paste(v, "— Log(x + 1)"),
          x = x_label_log,
@@ -147,7 +149,7 @@ for (v in resp_vars) {
     theme_bw()
   
   # SQRT HIST (bottom left)
-  p3 <- ggplot(all.counts, aes(x = x_sqrt)) +
+  p3 <- ggplot(habitat, aes(x = x_sqrt)) +
     geom_histogram(binwidth = binw_sqrt, colour = "black", fill = "skyblue") +
     labs(title = paste(v, "— sqrt"),
          x = x_label_sqrt,
@@ -177,9 +179,9 @@ for (v in resp_vars) {
 
 #-------------------------------------------------------------------------
 #checking for correlations between variables
-vars_in_data <- resp_vars[resp_vars %in% names(all.counts)]
-numeric_vars <- vars_in_data[sapply(all.counts[vars_in_data], is.numeric)]
+vars_in_data <- resp_vars[resp_vars %in% names(habitat)]
+numeric_vars <- vars_in_data[sapply(habitat[vars_in_data], is.numeric)]
 
-round(cor(all.counts[, numeric_vars], use = "complete.obs"), 2)
+round(cor(habitat[, numeric_vars], use = "complete.obs"), 2)
 
 

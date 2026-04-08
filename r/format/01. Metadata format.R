@@ -1,8 +1,6 @@
 ################################################################################
 ###                   Formatting & Tidying METADATA                       #####
 ###############################################################################
-## - Alejandro, I've copied this from mine - you might have to update to match your
-## metadata sheet (labsheet)
 
 rm(list=ls()) # Clear memory
 
@@ -10,7 +8,6 @@ rm(list=ls()) # Clear memory
 
 install.packages('remotes')
 library('remotes')
-options(timeout=9999999)
 remotes::install_github("GlobalArchiveManual/CheckEM")
 library(CheckEM)
 library(tidyverse)
