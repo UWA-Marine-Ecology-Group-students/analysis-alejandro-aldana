@@ -29,23 +29,30 @@ name <- "2024_Wudjari_bait_comp"
 habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_full.habitat.rds")%>%
   glimpse()
 
-## read in Count data & join
+## read in TA.SR dataframe
 
-dat <- readRDS("./data/tidy/.RDS") %>% ##update with your count dataframe
-  left_join(habitat)%>%
+ta.sr <- readRDS("./data/tidy/.RDS") %>% ##update with your count dataframe
+  left_join(habitat, by = sample)%>%
   clean_names() %>%
   glimpse()
 
+## filter into 2 separate dataframes for each response
 
+total.abund <- ta.sr %>%
+  dplyr::filter(response == "total abuundance")%>%
+  glimpse()
+
+species.rich <-
 
 
 ################################################
 ## Checking formatting & accuracy of dataframe
 # Note - my dataframe was all.counts - use something different
-sum(all.counts$maxn)
-unique(all.counts$species)
+sum(total.abund$number)
+# unique(all.counts$species)
+
 length(unique(all.counts$opcode)) #should be 100
-length(unique(all.counts$site)) #12 sites
+length(unique(all.counts$location)) #12 sites
 
 checks <- all.counts %>% 
   dplyr::filter(if_any(everything(), is.na))%>%
@@ -82,7 +89,7 @@ length(unique(all.counts$site))
 ## plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
 #
 
-ggplot(all.counts, aes(x = maxn)) +
+ggplot(total.abund, aes(x = number)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
   labs(title = "Histogram of Maxn Values",
        x = "Maxn Value",
@@ -100,8 +107,8 @@ ggplot(all.counts, aes(x = maxn)) +
 ##            fitting base models with distribution families
 #------------------------------------------------------------------------------
 
-# maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
-#                 data = all.counts,
+# maxn.pois <- glmmTMB(maxn ~ bait + (1|site), ##change to location instead of site
+#                 data = all.counts, ##just do total.abund now
 #                 family = "poisson")
 # 
 # 
@@ -158,7 +165,7 @@ ggplot(all.counts, aes(x = maxn)) +
 #       plot(simres)
 #       testZeroInflation(simres)
 #       plotResiduals(simres, model_data$bait)
-#       plotResiduals(simres, model_data$site)
+#       plotResiduals(simres, model_data$site) #location
 #       
 #     }, error = function(e) {
 #       message("ERROR in model ", m, ": ", e$message)
