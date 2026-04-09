@@ -4,7 +4,13 @@
 rm(list=ls())
 
 # libraries----
-#library(devtools)
+# install.packages("devtools")
+library(devtools)
+# install.packages('remotes')
+library('remotes')
+options(timeout=9999999)
+# remotes::install_github("GlobalArchiveManual/CheckEM")
+# install.packages("CheckEM")
 library(CheckEM)
 library(tidyverse)
 library(MuMIn)
@@ -15,46 +21,56 @@ library(cowplot)
 library(emmeans)
 library(glmmTMB)
 library(DHARMa)
+library(performance) 
 library(bbmle) #for AICtab
 
 name <- "Baitcomp_All"
 
+#----------------------------------------------------------------------------
 # Read in the formatted data
-
 
 # read in habitat data
 habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
+  dplyr::rename(sample = opcode)%>%
+  dplyr::mutate(sd.relief = replace_na(sd.relief, 0))%>% ##drp[046] has sd relief = NA so changing to 0 
+  clean_names()%>%
   glimpse()
 
-# read in Count data & join
+#-----------------------------------------------------------------------
+## Alejo - Ignore this section for now - just use the ta.sr dataframe for first two
+## analyses
+##read in Count data & join 
+# 
+# comc <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
+#   left_join(habitat)%>%
+#   clean_names() %>%
+#   glimpse()
 
-comc <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
-  left_join(habitat)%>%
-  clean_names() %>%
-  glimpse()
-
-# Checking formatting & accuracy of dataframe
-sum(comc$maxn)
-unique(comc$species)
-length(unique(comc$opcode)) #should be 100
-length(unique(comc$site)) #12 sites
-
-checks <- comc %>% 
-
+# # Checking formatting & accuracy of dataframe
+# sum(comc$maxn)
+# unique(comc$species)
+# length(unique(comc$opcode)) #should be 100
+# length(unique(comc$site)) #12 sites
+# 
+# checks <- comc %>% 
+#--------------------------------------------------------------------
 ## read in TA.SR dataframe
 
-ta.sr <- readRDS("./data/tidy/.RDS") %>% ##update with your count dataframe
-  left_join(habitat, by = sample)%>%
+ta.sr <- readRDS("./data/tidy/Baitcomp_All_ta.sr.RDS") %>% ##update
   clean_names() %>%
   glimpse()
 
+#-------
 ## filter into 2 separate dataframes for each response
+unique(ta.sr$response)
 
 total.abund <- ta.sr %>%
-  dplyr::filter(response == "total abuundance")%>%
+  dplyr::filter(response == "total_abundance")%>%
+  left_join(habitat, by = "sample")%>%
   glimpse()
 
-species.rich <-
+##repeat for species richness
+# species.rich <-
 
 
 ################################################
@@ -63,21 +79,22 @@ species.rich <-
 sum(total.abund$number)
 # unique(all.counts$species)
 
-length(unique(all.counts$opcode)) #should be 100
-length(unique(all.counts$location)) #12 sites
+length(unique(total.abund$sample)) #should be 100
+length(unique(total.abund$location)) #6 locations
 
-checks <- all.counts %>% 
+checks <- total.abund %>% 
+  dplyr::select(-c(successful_length,site))%>%
   dplyr::filter(if_any(everything(), is.na))%>%
   glimpse() #should return empty dataframe if no NAs
 
 ## SUMMARY STATS
-# MaxN summary per bait type
+# MaxN summary per bait type 
 
-maxn_summary <- comc %>%
+maxn_summary <- comc %>% #update for total abundance df
   group_by(bait) %>%
   summarise(
     n             = n(),
-    mean   = mean(maxn, na.rm = TRUE),
+    mean   = mean(maxn, na.rm = TRUE), #update maxn to number throughout 
     se     = sd(maxn, na.rm = TRUE) / sqrt(n()),
     median = median(maxn, na.rm = TRUE),
     min    = min(maxn, na.rm = TRUE),
@@ -86,7 +103,8 @@ maxn_summary <- comc %>%
     sum    = sum(maxn, na.rm = T))%>%
   mutate(across(where(is.numeric), ~ round(.x, 3)))%>%
   glimpse()
- 
+
+#update your file path.  
 write.csv(maxn_summary, "./output/baitcomp/maxn.all/maxn_summary_table.csv",row.names = FALSE)
 
 summary(comc$location)
@@ -96,14 +114,14 @@ length(unique(comc$site))
 
 # plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
 
-ggplot(comc, aes(x = maxn)) +
+# ggplot(comc, aes(x = maxn)) +
 ggplot(total.abund, aes(x = number)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
   labs(title = "Histogram of Maxn Values",
-       x = "Maxn Value",
+       x = "Abundance Value",
        y = "Count") +
-  scale_x_continuous(
-    breaks = c(0, 1, 2, 3, 4, 5, 6, 7))+
+  # scale_x_continuous( 
+  #   breaks = c(0, 1, 2, 3, 4, 5, 6, 7))+ ## this tells the plot to change the scale along the x axis
   theme_cowplot()
 
 ## READ ME: the following loop will export pdfs with the diagnostic
@@ -112,8 +130,8 @@ ggplot(total.abund, aes(x = number)) +
   
 #            fitting base models with distribution families
 
-maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
-                 data = all.counts,
+ta.pois <- glmmTMB(number ~ bait + (1|location),
+                 data = total.abund,
                  family = "poisson")
 
 
@@ -146,7 +164,7 @@ models <- list(
 
  export_dharma <- function(model_list,
                            data,
-                           outdir = "./output/maxn/diagnostics") {
+                           outdir = "./output/total.abund/diagnostics") {
 
    if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
@@ -167,7 +185,7 @@ models <- list(
        plot(simres)
        testZeroInflation(simres)
        plotResiduals(simres, model_data$bait)
-       plotResiduals(simres, model_data$site)
+       plotResiduals(simres, model_data$location)
 
      }, error = function(e) {
        message("ERROR in model ", m, ": ", e$message)
@@ -179,9 +197,10 @@ models <- list(
  }
  export_dharma(models)
 
- # Run dev.off() again below
+ #------------------------------------------------------------------
+ # Run dev.off() again below -- After its finished running!
 dev.off()
-
+#---------------------------------------------------------------------
 # READ ME: Select the best PDF and select the distribution family that looks best
 
 #   full subsets to rank by most parsimonious & lowest AICc
