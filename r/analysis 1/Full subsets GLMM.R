@@ -26,6 +26,7 @@ name <- "Baitcomp_All"
 habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
   glimpse()
 
+<<<<<<< HEAD:r/analysis 1/Full subsets GLMM.R
 # read in Count data & join
 
 comc <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
@@ -40,6 +41,34 @@ length(unique(comc$opcode)) #should be 100
 length(unique(comc$site)) #12 sites
 
 checks <- comc %>% 
+=======
+## read in TA.SR dataframe
+
+ta.sr <- readRDS("./data/tidy/.RDS") %>% ##update with your count dataframe
+  left_join(habitat, by = sample)%>%
+  clean_names() %>%
+  glimpse()
+
+## filter into 2 separate dataframes for each response
+
+total.abund <- ta.sr %>%
+  dplyr::filter(response == "total abuundance")%>%
+  glimpse()
+
+species.rich <-
+
+
+################################################
+## Checking formatting & accuracy of dataframe
+# Note - my dataframe was all.counts - use something different
+sum(total.abund$number)
+# unique(all.counts$species)
+
+length(unique(all.counts$opcode)) #should be 100
+length(unique(all.counts$location)) #12 sites
+
+checks <- all.counts %>% 
+>>>>>>> 644dfcc7d6227d05189cd8bdc9cd7d61c33c8fde:r/analysis 1/fullsubsetsGLMMexample.R
   dplyr::filter(if_any(everything(), is.na))%>%
   glimpse() #should return empty dataframe if no NAs
 
@@ -70,7 +99,11 @@ length(unique(comc$site))
 # plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
 #
 
+<<<<<<< HEAD:r/analysis 1/Full subsets GLMM.R
 ggplot(comc, aes(x = maxn)) +
+=======
+ggplot(total.abund, aes(x = number)) +
+>>>>>>> 644dfcc7d6227d05189cd8bdc9cd7d61c33c8fde:r/analysis 1/fullsubsetsGLMMexample.R
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
   labs(title = "Histogram of Maxn Values",
        x = "Maxn Value",
@@ -83,11 +116,34 @@ ggplot(comc, aes(x = maxn)) +
 # plots to see which distribution family best fits the data. To make sure to update the
 # dataframe and the response variable
 
+<<<<<<< HEAD:r/analysis 1/Full subsets GLMM.R
 #            fitting base models with distribution families
 
 maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
                  data = all.counts,
                  family = "poisson")
+=======
+# maxn.pois <- glmmTMB(maxn ~ bait + (1|site), ##change to location instead of site
+#                 data = all.counts, ##just do total.abund now
+#                 family = "poisson")
+# 
+# 
+# maxn.nb <- glmmTMB(maxn ~ bait + (1|site),
+#                     data = all.counts,
+#                     family = "nbinom2")
+# 
+# 
+# maxn.zipois <- glmmTMB(maxn ~ bait + (1|site),
+#                   ziformula = ~1,   # constant zero-inflation
+#                   family = poisson,
+#                   data = all.counts)
+# 
+# maxn.compois <- glmmTMB(maxn ~ bait + (1|site),
+#                         data = all.counts,
+#                         family = compois()) ##this one takes a bit more time to run
+# 
+# AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois) 
+>>>>>>> 644dfcc7d6227d05189cd8bdc9cd7d61c33c8fde:r/analysis 1/fullsubsetsGLMMexample.R
 
 
  maxn.nb <- glmmTMB(maxn ~ bait + (1|site),
@@ -108,6 +164,7 @@ maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
 
 ## Looping through diagnostics & exporting plots
 # exporting all diagnostic plots
+<<<<<<< HEAD:r/analysis 1/Full subsets GLMM.R
 # list models
 models <- list(
    maxn.pois = maxn.pois,
@@ -115,6 +172,51 @@ models <- list(
    maxn.zipois = maxn.zipois,
    maxn.compois = maxn.compois
    )
+=======
+#list models
+# models <- list(
+#   maxn.pois = maxn.pois,
+#   maxn.nb = maxn.nb,
+#   maxn.zipois = maxn.zipois,
+#   maxn.compois = maxn.compois
+#   )
+# 
+# # ------------------------------------------------------------
+# export_dharma <- function(model_list,
+#                           data,
+#                           outdir = "./output/maxn/diagnostics") {
+# 
+#   if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
+#   
+#   for (m in names(model_list)) {
+#     
+#     this_model <- model_list[[m]]
+#     model_data <- model.frame(this_model) 
+#     message("Processing model: ", m)
+#     
+#     outfile <- file.path(outdir, paste0(m, "_diagnostics.pdf"))
+#     pdf(outfile)
+#     
+#     tryCatch({
+#       simres <- simulateResiduals(fittedModel = this_model, n = 1000)
+#       
+#       # basic/standard plots
+#       testDispersion(simres)
+#       plot(simres)
+#       testZeroInflation(simres)
+#       plotResiduals(simres, model_data$bait)
+#       plotResiduals(simres, model_data$site) #location
+#       
+#     }, error = function(e) {
+#       message("ERROR in model ", m, ": ", e$message)
+#     })
+#     
+#     dev.off()
+#     message("Saved: ", outfile)
+#   }
+# }
+# export_dharma(models)
+>>>>>>> 644dfcc7d6227d05189cd8bdc9cd7d61c33c8fde:r/analysis 1/fullsubsetsGLMMexample.R
 
  export_dharma <- function(model_list,
                            data,
