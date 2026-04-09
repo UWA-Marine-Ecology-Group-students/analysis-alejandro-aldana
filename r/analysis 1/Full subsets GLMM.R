@@ -1,6 +1,5 @@
 ########################################
 ## Exploring your count data & Modelling
-## Alejandro, you'll need to update to work for your data.
 
 rm(list=ls())
 
@@ -16,46 +15,38 @@ library(cowplot)
 library(emmeans)
 library(glmmTMB)
 library(DHARMa)
-library("bbmle") #for AICtab
+library(bbmle) #for AICtab
 
-name <- "2024_Wudjari_bait_comp"
+name <- "Baitcomp_All"
 
-
-#----------------------------------------------------------------------------
 # Read in the formatted data
 
 
-## read in habitat data
-habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_full.habitat.rds")%>%
+# read in habitat data
+habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
   glimpse()
 
-## read in Count data & join
+# read in Count data & join
 
-dat <- readRDS("./data/tidy/.RDS") %>% ##update with your count dataframe
+comc <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
   left_join(habitat)%>%
   clean_names() %>%
   glimpse()
 
+# Checking formatting & accuracy of dataframe
+sum(comc$maxn)
+unique(comc$species)
+length(unique(comc$opcode)) #should be 100
+length(unique(comc$site)) #12 sites
 
-
-
-################################################
-## Checking formatting & accuracy of dataframe
-# Note - my dataframe was all.counts - use something different
-sum(all.counts$maxn)
-unique(all.counts$species)
-length(unique(all.counts$opcode)) #should be 100
-length(unique(all.counts$site)) #12 sites
-
-checks <- all.counts %>% 
+checks <- comc %>% 
   dplyr::filter(if_any(everything(), is.na))%>%
   glimpse() #should return empty dataframe if no NAs
 
-#############################################
 ## SUMMARY STATS
 # MaxN summary per bait type
 
-maxn_summary <- all.counts %>%
+maxn_summary <- comc %>%
   group_by(bait) %>%
   summarise(
     n             = n(),
@@ -68,21 +59,18 @@ maxn_summary <- all.counts %>%
     sum    = sum(maxn, na.rm = T))%>%
   mutate(across(where(is.numeric), ~ round(.x, 3)))%>%
   glimpse()
+ 
+write.csv(maxn_summary, "./output/baitcomp/maxn.all/maxn_summary_table.csv",row.names = FALSE)
 
-# 
-# write.csv(maxn_summary,
-#           "./output/baitcomp/maxn.all/maxn_summary_table.csv",
-#           row.names = FALSE)
-
-summary(all.counts$location)
-summary(all.counts$site)
-length(unique(all.counts$site))
+summary(comc$location)
+summary(comc$site)
+length(unique(comc$site))
 
 
-## plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
+# plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
 #
 
-ggplot(all.counts, aes(x = maxn)) +
+ggplot(comc, aes(x = maxn)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
   labs(title = "Histogram of Maxn Values",
        x = "Maxn Value",
@@ -91,105 +79,89 @@ ggplot(all.counts, aes(x = maxn)) +
     breaks = c(0, 1, 2, 3, 4, 5, 6, 7))+
   theme_cowplot()
 
-###############################################################################
-## READ ME: Alejandro - the following loop will export pdfs with the diagnostic
-## plots to see which distribution family best fits your data. 
-## just make sure to update the dataframe and your response variable but otherwise 
-## can just leave as is
-#------------------------------------------------------------------------------
-##            fitting base models with distribution families
-#------------------------------------------------------------------------------
+## READ ME: the following loop will export pdfs with the diagnostic
+# plots to see which distribution family best fits the data. To make sure to update the
+# dataframe and the response variable
 
-# maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
-#                 data = all.counts,
-#                 family = "poisson")
-# 
-# 
-# maxn.nb <- glmmTMB(maxn ~ bait + (1|site),
-#                     data = all.counts,
-#                     family = "nbinom2")
-# 
-# 
-# maxn.zipois <- glmmTMB(maxn ~ bait + (1|site),
-#                   ziformula = ~1,   # constant zero-inflation
-#                   family = poisson,
-#                   data = all.counts)
-# 
-# maxn.compois <- glmmTMB(maxn ~ bait + (1|site),
-#                         data = all.counts,
-#                         family = compois()) ##this one takes a bit more time to run
-# 
-# AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois) 
+#            fitting base models with distribution families
+
+maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
+                 data = all.counts,
+                 family = "poisson")
 
 
-#------------------------------------------------------------------------------
-#                 ## Looping through diagnostics & exporting plots
-#------------------------------------------------------------------------------
+ maxn.nb <- glmmTMB(maxn ~ bait + (1|site),
+                     data = all.counts,
+                     family = "nbinom2")
+
+
+ maxn.zipois <- glmmTMB(maxn ~ bait + (1|site),
+                   ziformula = ~1,   # constant zero-inflation
+                   family = poisson,
+                   data = all.counts)
+
+ maxn.compois <- glmmTMB(maxn ~ bait + (1|site),
+                         data = all.counts,
+                         family = compois()) ##this one takes a bit more time to run
+
+ AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois)
+
+## Looping through diagnostics & exporting plots
 # exporting all diagnostic plots
-#list models
-# models <- list(
-#   maxn.pois = maxn.pois,
-#   maxn.nb = maxn.nb,
-#   maxn.zipois = maxn.zipois,
-#   maxn.compois = maxn.compois
-#   )
-# 
-# # ------------------------------------------------------------
-# export_dharma <- function(model_list,
-#                           data,
-#                           outdir = "./output/maxn/diagnostics") {
-# 
-#   if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
-#   
-#   for (m in names(model_list)) {
-#     
-#     this_model <- model_list[[m]]
-#     model_data <- model.frame(this_model) 
-#     message("Processing model: ", m)
-#     
-#     outfile <- file.path(outdir, paste0(m, "_diagnostics.pdf"))
-#     pdf(outfile)
-#     
-#     tryCatch({
-#       simres <- simulateResiduals(fittedModel = this_model, n = 1000)
-#       
-#       # basic/standard plots
-#       testDispersion(simres)
-#       plot(simres)
-#       testZeroInflation(simres)
-#       plotResiduals(simres, model_data$bait)
-#       plotResiduals(simres, model_data$site)
-#       
-#     }, error = function(e) {
-#       message("ERROR in model ", m, ": ", e$message)
-#     })
-#     
-#     dev.off()
-#     message("Saved: ", outfile)
-#   }
-# }
-# export_dharma(models)
+# list models
+models <- list(
+   maxn.pois = maxn.pois,
+   maxn.nb = maxn.nb,
+   maxn.zipois = maxn.zipois,
+   maxn.compois = maxn.compois
+   )
 
-###########################################################################
-## Run dev.off() again below
+ export_dharma <- function(model_list,
+                           data,
+                           outdir = "./output/maxn/diagnostics") {
+
+   if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
+
+   for (m in names(model_list)) {
+
+     this_model <- model_list[[m]]
+     model_data <- model.frame(this_model)
+     message("Processing model: ", m)
+
+     outfile <- file.path(outdir, paste0(m, "_diagnostics.pdf"))
+     pdf(outfile)
+
+     tryCatch({
+       simres <- simulateResiduals(fittedModel = this_model, n = 1000)
+
+       # basic/standard plots
+       testDispersion(simres)
+       plot(simres)
+       testZeroInflation(simres)
+       plotResiduals(simres, model_data$bait)
+       plotResiduals(simres, model_data$site)
+
+     }, error = function(e) {
+       message("ERROR in model ", m, ": ", e$message)
+     })
+
+     dev.off()
+     message("Saved: ", outfile)
+   }
+ }
+ export_dharma(models)
+
+ # Run dev.off() again below
 dev.off()
 
-############################################################################
-## READ ME: look at your pdfs and select the distribution family that looks best
-## then do the next bit
+# READ ME: Select the best PDF and select the distribution family that looks best
 
-###########################################################################
-#-------------------------------------------------------------------
 #   full subsets to rank by most parsimonious & lowest AICc
-#--------------------------------------------------------------------
-## READ ME: full subsets means we specify our predictors variables and run a loop
-## that tests all possible models with those specified predictors
-## - I have put "update" next to all the bits you need to change - otherwise leave
-## as is and we can discuss when you have run it
 
+# READ ME: full subsets means we specify our predictors variables and run a loop
+##that tests all possible models with those specified predictors
 
-# Base model (bait only) -- this should be your model from above with the chosen
-# distribution family
+# Base model (bait only) -- this should be the model from above with the chosen distribution family
 
 base_model <- glmmTMB(maxn ~ bait + (1|site), 
                       data = all.counts, 
@@ -199,8 +171,6 @@ base_model <- glmmTMB(maxn ~ bait + (1|site),
 outdir <- "./output/maxn/models"
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE) #should create folder but might not
 
-
-#---------------------------------------------------------
 # Predictor variables 
 pred_vars <- c("mean_relief", 
                "sd_relief",
@@ -211,7 +181,6 @@ pred_vars <- c("mean_relief",
                "ecklonia"
 )
 
-#---------------------------------------------------------
 # All predictor combinations: 1, 2, or 3 predictors
 pred_combos <- c(
   combn(pred_vars, 1, simplify = FALSE),
@@ -219,10 +188,10 @@ pred_combos <- c(
   combn(pred_vars, 3, simplify = FALSE)
 )
 
-#-------------------------------------------------------
 # Function to remove predictor conflicts (canopy with scyto, ecklonia or macro)
-## ALEJANDRO - this is because canopy = scytothalia + ecklonia + other large canopy forming macros
-## & 'macroalgae' is mixed macro (all the non canopy stuff) and is negatively correlated with canopy - see habitat transformations script
+# This is because canopy = scytothalia + ecklonia + other large canopy forming macros
+# & 'macroalgae' is mixed macro (all the non canopy stuff) and is negatively correlated with canopy - see habitat transformations script
+
 has_predictor_conflict <- function(pred_vector) {
   # If canopy is in the model with either ecklonia or scytothalia, exclude it
   if ("canopy" %in% pred_vector && 
@@ -241,14 +210,12 @@ has_predictor_conflict <- function(pred_vector) {
 # Remove conflicting combinations
 pred_combos <- Filter(function(x) !has_predictor_conflict(x), pred_combos)
 
-#---------------------------------------------------------
 # Store failures (failed models)
 failure_list <- list()
 failure_id <- 1
 
-#---------------------------------------------------------
 # Functions to extract conditional R2 with adjusted tolerance
-## Because site had exrtemely low variance
+# Because site had extremely low variance
 safe_cR2 <- function(model) {
   tryCatch({
     r2 <- performance::r2(model, tolerance = 1e-10)
@@ -268,7 +235,6 @@ safe_mR2 <- function(model) {
   })
 }
 
-#---------------------------------------------------------
 # Fit model and extract stats
 fit_model_and_extract <- function(pred_vector) {
   
@@ -281,7 +247,7 @@ fit_model_and_extract <- function(pred_vector) {
   m <- withCallingHandlers(
     tryCatch(
       glmmTMB(f, 
-              data = all.counts, ##update
+              data = comc, ##update
               family = compois()), ##update
       error = function(e) {
         failure_list[[failure_id <<- failure_id + 1]] <<- tibble(
@@ -326,7 +292,6 @@ fit_model_and_extract <- function(pred_vector) {
   )
 }
 
-#---------------------------------------------------------
 # Getting comparison stats for base model
 
 base_stats <- tibble(
@@ -339,11 +304,9 @@ base_stats <- tibble(
   RDF = df.residual(base_model)
 )
 
-#---------------------------------------------------------
 # Fit all 1–3 predictor models
 model_stats <- map_dfr(pred_combos, fit_model_and_extract)
 
-#---------------------------------------------------------
 # Combine + rank with adjusted AICc
 final_table <- bind_rows(base_stats, model_stats) %>%
   filter(!is.na(AICc)) %>%
@@ -357,7 +320,7 @@ final_table <- bind_rows(base_stats, model_stats) %>%
     deltaAICc = AICc - min(AICc),
     delta_adjAICc = adjAICc - min(adjAICc)) %>%
   arrange(adjAICc)  # Sort by adjusted AICc
-#---------------------------------------------------------
+
 # Export CSV
 write_csv(final_table, file.path(outdir, "maxn_best_models.csv"))
 
@@ -374,9 +337,6 @@ write_csv(failed_models, file.path(outdir, "maxn_failed_models.csv"))
 
 #-------------------- END ------------------------------------------------
 
-#############################################################################
-
-#---------------------------------------------------------------------------
 # double checking full subset worked correctly
 #---------------------------------------------------------------------------
 
