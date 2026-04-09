@@ -430,27 +430,22 @@ write_csv(final_table, file.path(outdir, "maxn_best_models.csv"))
 print(final_table %>% 
         select(model, n_predictors, AICc, adjAICc, delta_adjAICc, mR2, cR2))
 
-#---------------------------------------------------------
 # Convert failures to a table
 failed_models <- bind_rows(failure_list)
 
 # Save to CSV
 write_csv(failed_models, file.path(outdir, "maxn_failed_models.csv"))
 
-#-------------------- END ------------------------------------------------
+#---- END ---
 
 # double checking full subset worked correctly
-#---------------------------------------------------------------------------
 
 summary(base_model)
 logLik(base_model)
 MuMIn::AICc(base_model)
 performance::r2(base_model, tolerance = 1e-10) 
 
-#---------------------------------------------------------------------------
 # exporting table with first 2 best models
-#---------------------------------------------------------------------------
-
 # Export CSV
 # final_table <- read.csv("./output/maxn/models/maxn_best_models.csv")
 maxn.top2 <- final_table %>%
