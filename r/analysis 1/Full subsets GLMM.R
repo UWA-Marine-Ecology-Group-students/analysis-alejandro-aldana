@@ -1,67 +1,85 @@
 ########################################
-## Exploring your count data & Modelling
+## Exploring count data & Modelling
 
 rm(list=ls())
 
-# libraries----
-# install.packages("devtools")
+# Libraries----
+install.packages("devtools")
 library(devtools)
-# install.packages('remotes')
+install.packages("usethis")
+library(usethis)
+install.packages("vctrs")
+library('vctrs')
+install.packages('remotes')
 library('remotes')
-options(timeout=9999999)
-# remotes::install_github("GlobalArchiveManual/CheckEM")
-# install.packages("CheckEM")
+remotes::install_github("GlobalArchiveManual/CheckEM")
+install.packages("CheckEM")
 library(CheckEM)
+remotes::install_github("GlobalArchiveManual/CheckEM", force = TRUE)
+library(CheckEM)
+packageVersion("CheckEM")
+install.packages("tidyverse")
 library(tidyverse)
+install.packages("MuMIn")
 library(MuMIn)
+install.packages("car")
 library(car)
+install.packages("ggplot2")
 library(ggplot2)
+install.packages("lme4")
 library(lme4)
+install.packages("dplyr")
+library(dplyr)
+install.packages("janitor")
+library(janitor)
+install.packages("cowplot")
 library(cowplot)
+install.packages("emmeans")
 library(emmeans)
+install.packages("glmmTMB")
 library(glmmTMB)
+install.packages("DHARMa")
 library(DHARMa)
+install.packages("performance")
 library(performance) 
+install.packages("bbmle")
 library(bbmle) #for AICtab
 
 name <- "Baitcomp_All"
 
 #----------------------------------------------------------------------------
 # Read in the formatted data
-
-# read in habitat data
+ta_sr <- read.csv("./data/tidy/Baitcomp_All_ta.sr.rds")
+# Read in habitat data
 habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
   dplyr::rename(sample = opcode)%>%
-  dplyr::mutate(sd.relief = replace_na(sd.relief, 0))%>% ##drp[046] has sd relief = NA so changing to 0 
+  dplyr::mutate(sd.relief = replace_na(sd.relief, 0))%>% ## drp[046] has sd relief = NA so changing to 0 
   clean_names()%>%
   glimpse()
 
-#-----------------------------------------------------------------------
 ## Alejo - Ignore this section for now - just use the ta.sr dataframe for first two
 ## analyses
-##read in Count data & join 
-# 
-# comc <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
-#   left_join(habitat)%>%
-#   clean_names() %>%
-#   glimpse()
 
-# # Checking formatting & accuracy of dataframe
-# sum(comc$maxn)
-# unique(comc$species)
-# length(unique(comc$opcode)) #should be 100
-# length(unique(comc$site)) #12 sites
-# 
-# checks <- comc %>% 
-#--------------------------------------------------------------------
-## read in TA.SR dataframe
+# Read in Count data & join 
+comp_cou <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
+   left_join(habitat)%>%
+   clean_names() %>%
+   glimpse()
 
-ta.sr <- readRDS("./data/tidy/Baitcomp_All_ta.sr.RDS") %>% ##update
+# Checking formatting & accuracy of dataframe
+sum(comp_cou$maxn)
+unique(comp_cou$species)
+length(unique(comp_cou$opcode)) #should be 100
+length(unique(comp_cou$site)) #12 sites
+checks <- comp_cou %>%
+  
+# read in TA.SR dataframe
+
+ta.sr <- readRDS("./data/tidy/Baitcomp_All_ta.sr.RDS") %>%
   clean_names() %>%
   glimpse()
 
-#-------
-## filter into 2 separate dataframes for each response
+# filter into 2 separate dataframes for each response
 unique(ta.sr$response)
 
 total.abund <- ta.sr %>%
@@ -90,7 +108,7 @@ checks <- total.abund %>%
 ## SUMMARY STATS
 # MaxN summary per bait type 
 
-maxn_summary <- comc %>% #update for total abundance df
+maxn_summary <- comp_cou %>% #update for total abundance df
   group_by(bait) %>%
   summarise(
     n             = n(),
@@ -107,9 +125,9 @@ maxn_summary <- comc %>% #update for total abundance df
 #update your file path.  
 write.csv(maxn_summary, "./output/baitcomp/maxn.all/maxn_summary_table.csv",row.names = FALSE)
 
-summary(comc$location)
-summary(comc$site)
-length(unique(comc$site))
+summary(comp_cou$location)
+summary(comp_cou$site)
+length(unique(comp_cou$site))
 
 
 # plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
