@@ -122,8 +122,8 @@ maxn_summary <- total.abund %>% #update for total abundance df
   mutate(across(where(is.numeric), ~ round(.x, 3)))%>%
   glimpse()
 
-#update your file path.  
-write.csv(maxn_summary, "./output/baitcomp/maxn.all/maxn_summary_table.csv",row.names = FALSE)
+# file path.  
+write.csv(maxn_summary, "./data/tidy/abund_summary.csv",row.names = FALSE)
 
 summary(total.abund$location)
 summary(total.abund$site)
@@ -138,15 +138,15 @@ ggplot(total.abund, aes(x = number)) +
   labs(title = "Histogram of Maxn Values",
        x = "Abundance Value",
        y = "Count") +
-  # scale_x_continuous( 
-  #   breaks = c(0, 1, 2, 3, 4, 5, 6, 7))+ ## this tells the plot to change the scale along the x axis
+#   scale_x_continuous( 
+#   breaks = c(0, 1, 2, 3, 4, 5, 6, 7))+ ## this tells the plot to change the scale along the x axis
   theme_cowplot()
 
 ## READ ME: the following loop will export pdfs with the diagnostic
 # plots to see which distribution family best fits the data. To make sure to update the
 # dataframe and the response variable
   
-#            fitting base models with distribution families
+#            Fitting base models with distribution families
 
 ta.pois <- glmmTMB(number ~ bait + (1|location),
                  data = total.abund,
