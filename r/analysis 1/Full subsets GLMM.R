@@ -104,7 +104,7 @@ checks <- total.abund %>%
   dplyr::filter(if_any(everything(), is.na))%>%
   glimpse() # should return empty dataframe if no NAs
 
-
+head(total.abund)
 ## SUMMARY STATS
 # MaxN summary per bait type 
 
@@ -112,13 +112,13 @@ maxn_summary <- total.abund %>% #update for total abundance df
   group_by(bait) %>%
   summarise(
     n             = n(),
-    mean   = mean(maxn, na.rm = TRUE), #update maxn to number throughout 
-    se     = sd(maxn, na.rm = TRUE) / sqrt(n()),
-    median = median(maxn, na.rm = TRUE),
-    min    = min(maxn, na.rm = TRUE),
-    max    = max(maxn, na.rm = TRUE),
-    range  = max(maxn, na.rm = TRUE) - min(maxn, na.rm = TRUE),
-    sum    = sum(maxn, na.rm = T))%>%
+    mean   = mean(number, na.rm = TRUE),
+    se     = sd(number, na.rm = TRUE) / sqrt(n()),
+    median = median(number, na.rm = TRUE),
+    min    = min(number, na.rm = TRUE),
+    max    = max(number, na.rm = TRUE),
+    range  = max(number, na.rm = TRUE) - min(number, na.rm = TRUE),
+    sum    = sum(number, na.rm = T))%>%
   mutate(across(where(is.numeric), ~ round(.x, 3)))%>%
   glimpse()
 
