@@ -58,20 +58,20 @@ habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
   clean_names()%>%
   glimpse()
 
-
+#-----
 # Read in Count data & join 
-comp_cou <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
-   left_join(habitat)%>%
-   clean_names() %>%
-   glimpse()
-
-# Checking formatting & accuracy of dataframe
-sum(comp_cou$maxn)
-unique(comp_cou$species)
-length(unique(comp_cou$opcode)) #should be 100
-length(unique(comp_cou$site)) #12 sites
-checks <- comp_cou %>%
-  
+# comp_cou <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
+#    left_join(habitat)%>%
+#    clean_names() %>%
+#    glimpse()
+# 
+# # Checking formatting & accuracy of dataframe
+# sum(comp_cou$maxn)
+# unique(comp_cou$species)
+# length(unique(comp_cou$opcode)) #should be 100
+# length(unique(comp_cou$site)) #12 sites
+# checks <- comp_cou %>%
+##-----  
 # read in TA.SR dataframe
 
 ta.sr <- readRDS("./data/tidy/Baitcomp_All_ta.sr.RDS") %>%
@@ -86,15 +86,15 @@ total.abund <- ta.sr %>%
   left_join(habitat, by = "sample")%>%
   glimpse()
 
-##repeat for species richness
-# species.rich <-
+species.rich <- ta.sr %>%
+  dplyr::filter(response == 'species_richness')%>%
+  left_join(habitat, by = "sample")%>%
+  glimpse()
 
-
-################################################
 ## Checking formatting & accuracy of dataframe
 # Note - my dataframe was all.counts - use something different
 sum(total.abund$number)
-# unique(all.counts$species)
+#unique(total.abund$species)
 
 length(unique(total.abund$sample)) #should be 100
 length(unique(total.abund$location)) #6 locations
@@ -102,12 +102,12 @@ length(unique(total.abund$location)) #6 locations
 checks <- total.abund %>% 
   dplyr::select(-c(successful_length,site))%>%
   dplyr::filter(if_any(everything(), is.na))%>%
-  glimpse() #should return empty dataframe if no NAs
+  glimpse() # should return empty dataframe if no NAs
 
 ## SUMMARY STATS
 # MaxN summary per bait type 
 
-maxn_summary <- comp_cou %>% #update for total abundance df
+maxn_summary <- total.abund%>% #update for total abundance df
   group_by(bait) %>%
   summarise(
     n             = n(),
@@ -124,9 +124,9 @@ maxn_summary <- comp_cou %>% #update for total abundance df
 #update your file path.  
 write.csv(maxn_summary, "./output/baitcomp/maxn.all/maxn_summary_table.csv",row.names = FALSE)
 
-summary(comp_cou$location)
-summary(comp_cou$site)
-length(unique(comp_cou$site))
+summary(total.abund$location)
+summary(total.abund$site)
+length(unique(total.abund$site))
 
 
 # plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
