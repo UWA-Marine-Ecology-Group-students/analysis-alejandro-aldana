@@ -10,6 +10,7 @@ install.packages("usethis")
 library(usethis)
 install.packages("vctrs")
 library('vctrs')
+packageVersion("vctrs")  # confirm the new version is active
 install.packages('remotes')
 library('remotes')
 remotes::install_github("GlobalArchiveManual/CheckEM")
@@ -49,7 +50,7 @@ name <- "Baitcomp_All"
 
 #----------------------------------------------------------------------------
 # Read in the formatted data
-ta_sr <- read.csv("./data/tidy/Baitcomp_All_ta.sr.rds")
+
 # Read in habitat data
 habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
   dplyr::rename(sample = opcode)%>%
