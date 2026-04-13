@@ -57,8 +57,6 @@ habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
   clean_names()%>%
   glimpse()
 
-## Alejo - Ignore this section for now - just use the ta.sr dataframe for first two
-## analyses
 
 # Read in Count data & join 
 comp_cou <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
