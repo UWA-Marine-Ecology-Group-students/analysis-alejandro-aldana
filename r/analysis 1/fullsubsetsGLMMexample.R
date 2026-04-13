@@ -1,4 +1,3 @@
-########################################
 ## Exploring your count data & Modelling
 
 rm(list=ls())
