@@ -104,10 +104,11 @@ checks <- total.abund %>%
   dplyr::filter(if_any(everything(), is.na))%>%
   glimpse() # should return empty dataframe if no NAs
 
+
 ## SUMMARY STATS
 # MaxN summary per bait type 
 
-maxn_summary <- total.abund%>% #update for total abundance df
+maxn_summary <- total.abund %>% #update for total abundance df
   group_by(bait) %>%
   summarise(
     n             = n(),
