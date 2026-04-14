@@ -82,14 +82,27 @@ ta.sr <- readRDS("./data/tidy/Baitcomp_All_ta.sr.RDS") %>%
 unique(ta.sr$response)
 
 total.abund <- ta.sr %>%
-  dplyr::filter(response == "total_abundance")%>%
-  left_join(habitat, by = "sample")%>%
+  dplyr::filter(response == "total_abundance") %>%
+  left_join(habitat, by = "sample") %>%
+  mutate(
+    bait     = as.factor(bait),
+    location = as.factor(location)
+  ) %>%
   glimpse()
 
 species.rich <- ta.sr %>%
-  dplyr::filter(response == 'species_richness')%>%
-  left_join(habitat, by = "sample")%>%
+  dplyr::filter(response == 'species_richness') %>%
+  left_join(habitat, by = "sample") %>%
+  mutate(
+    bait     = as.factor(bait),
+    location = as.factor(location)
+  ) %>%
   glimpse()
+
+levels(total.abund$bait)      # should show: abalone, octopus, pilchard
+levels(total.abund$location)  # should show your 6 locations
+class(total.abund$bait)       # should return "factor"
+class(total.abund$location)   # should return "factor"
 
 ## Checking formatting & accuracy of dataframe
 # Note - my dataframe was all.counts - use something different
@@ -130,14 +143,29 @@ summary(total.abund$site)
 length(unique(total.abund$location))
 
 
-# plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
+# plot Freq. distribution of Number ## plot Frmin()eq. distribution of Number 
 
-# ggplot(comc, aes(x = maxn)) +
+# Abundance and count histogram
+# ggplot(comc, aes(x = maxn))
 ggplot(total.abund, aes(x = number)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
   labs(title = "Histogram of Maxn Values",
        x = "Abundance Value",
        y = "Count") +
+  theme_cowplot()
+#   scale_x_continuous( 
+#   breaks = c(0, 1, 2, 3, 4, 5, 6, 7))+ ## this tells the plot to change the scale along the x axis
+
+# Frequency distribution of Number by bait
+ggplot(total.abund, aes(x = number, fill = bait)) +
+  geom_histogram(binwidth = 1, color = "black", alpha = 0.7) +
+  facet_wrap(~ bait) +
+  labs(title = "Frequency Distribution of Total Abundance by Bait",
+       x = "Abundance (Number)",
+       y = "Frequency") +
+  theme_cowplot() +
+  theme(legend.position = "none")
+
 #   scale_x_continuous( 
 #   breaks = c(0, 1, 2, 3, 4, 5, 6, 7))+ ## this tells the plot to change the scale along the x axis
   theme_cowplot()
@@ -151,6 +179,10 @@ ggplot(total.abund, aes(x = number)) +
 ta.pois <- glmmTMB(number ~ bait + (1|location),
                  data = total.abund,
                  family = "poisson")
+
+ta.log <- glmmTMB(number ~ bait + (1|location),
+                 data = total.abund,
+                 family = poisson(link = "log"))
 
 
 ta.nb <- glmmTMB(number ~ bait + (1|location),
@@ -167,7 +199,7 @@ ta.compois <- glmmTMB(number ~ bait + (1|location),
                          data = total.abund,
                          family = compois()) ##this one takes a bit more time to run
 
-AICtab(ta.pois, ta.nb, ta.zipois, ta.compois)
+AICtab(ta.pois, ta.nb, ta.zipois, ta.compois, ta.log)
 
 ## Looping through diagnostics & exporting plots
 # exporting all diagnostic plots
@@ -175,11 +207,12 @@ AICtab(ta.pois, ta.nb, ta.zipois, ta.compois)
 # list models
 models <- list(
    ta.pois = ta.pois,
+   ta.log = ta.log,
    ta.nb = ta.nb,
    ta.zipois = ta.zipois,
    ta.compois = ta.compois
    )
-# clearly the best model to use is negative binomial (ta.nb) due to its low dAIC score = 0.0
+# clearly the best model that fits data is negative binomial (ta.nb) due to its low dAIC score = 0.0, 
 library(DHARMa)
 
  export_dharma <- function(model_list,
