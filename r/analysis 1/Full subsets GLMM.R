@@ -127,7 +127,7 @@ write.csv(maxn_summary, "./data/tidy/abund_summary.csv",row.names = FALSE)
 
 summary(total.abund$location)
 summary(total.abund$site)
-length(unique(total.abund$site))
+length(unique(total.abund$location))
 
 
 # plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
@@ -153,21 +153,21 @@ ta.pois <- glmmTMB(number ~ bait + (1|location),
                  family = "poisson")
 
 
- maxn.nb <- glmmTMB(maxn ~ bait + (1|site),
-                     data = all.counts,
+maxn.nb <- glmmTMB(number ~ bait + (1|site),
+                     data = total.abund,
                      family = "nbinom2")
 
 
- maxn.zipois <- glmmTMB(maxn ~ bait + (1|site),
+maxn.zipois <- glmmTMB(maxn ~ bait + (1|site),
                    ziformula = ~1,   # constant zero-inflation
                    family = poisson,
                    data = all.counts)
 
- maxn.compois <- glmmTMB(maxn ~ bait + (1|site),
+maxn.compois <- glmmTMB(maxn ~ bait + (1|site),
                          data = all.counts,
                          family = compois()) ##this one takes a bit more time to run
 
- AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois)
+AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois)
 
 ## Looping through diagnostics & exporting plots
 # exporting all diagnostic plots
