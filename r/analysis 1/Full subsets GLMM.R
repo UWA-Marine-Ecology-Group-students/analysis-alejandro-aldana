@@ -153,36 +153,38 @@ ta.pois <- glmmTMB(number ~ bait + (1|location),
                  family = "poisson")
 
 
-maxn.nb <- glmmTMB(number ~ bait + (1|site),
+ta.nb <- glmmTMB(number ~ bait + (1|location),
                      data = total.abund,
                      family = "nbinom2")
 
 
-maxn.zipois <- glmmTMB(maxn ~ bait + (1|site),
+ta.zipois <- glmmTMB(number ~ bait + (1|location),
                    ziformula = ~1,   # constant zero-inflation
                    family = poisson,
-                   data = all.counts)
+                   data = total.abund)
 
-maxn.compois <- glmmTMB(maxn ~ bait + (1|site),
-                         data = all.counts,
+ta.compois <- glmmTMB(number ~ bait + (1|location),
+                         data = total.abund,
                          family = compois()) ##this one takes a bit more time to run
 
-AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois)
+AICtab(ta.pois, ta.nb, ta.zipois, ta.compois)
 
 ## Looping through diagnostics & exporting plots
 # exporting all diagnostic plots
 
 # list models
 models <- list(
-   maxn.pois = maxn.pois,
-   maxn.nb = maxn.nb,
-   maxn.zipois = maxn.zipois,
-   maxn.compois = maxn.compois
+   ta.pois = ta.pois,
+   ta.nb = ta.nb,
+   ta.zipois = ta.zipois,
+   ta.compois = ta.compois
    )
+# clearly the best model to use is negative binomial (ta.nb) due to its low dAIC score = 0.0
+library(DHARMa)
 
  export_dharma <- function(model_list,
                            data,
-                           outdir = "./output/total.abund/diagnostics") {
+                           outdir = "./output/models and plots") {
 
    if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
