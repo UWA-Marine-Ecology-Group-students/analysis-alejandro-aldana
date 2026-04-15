@@ -136,7 +136,7 @@ maxn_summary <- total.abund %>% #update for total abundance df
   glimpse()
 
 # file path.  
-write.csv(maxn_summary, "./data/tidy/abund_summary.csv",row.names = FALSE)
+write.csv(maxn_summary, "./output/models and plots/abund_summary.csv",row.names = FALSE)
 
 summary(total.abund$location)
 summary(total.abund$site)
