@@ -1,5 +1,3 @@
-####
-####
 #### Hannah's fiddling with the distribution families
 ####
 ####
