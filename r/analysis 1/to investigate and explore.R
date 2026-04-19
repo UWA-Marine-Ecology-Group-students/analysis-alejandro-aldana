@@ -180,3 +180,94 @@ comp_cou %>%
   dplyr::summarise(count = sum(count, na.rm = TRUE), .groups = "drop") %>%
   dplyr::arrange(sample, desc(count)) %>%
   print(n = 1000)
+
+## Filter outlier samples before modelling
+# Check which samples exceed thresholds
+total.abund %>% 
+  dplyr::filter(number > 500) %>%
+  dplyr::select(sample, bait, location, number) %>%
+  arrange(desc(number)) %>%
+  print()
+
+# Create filtered dataframes
+total.abund.lt500  <- total.abund %>% dplyr::filter(number <= 500)
+total.abund.lt1000 <- total.abund %>% dplyr::filter(number <= 1000)
+
+# Quick check - how many samples removed in each?
+cat("Original n:          ", nrow(total.abund), "\n")
+cat("After <500 filter:   ", nrow(total.abund.lt500), "\n")
+cat("After <1000 filter:  ", nrow(total.abund.lt1000), "\n")
+
+## Fit models across all three datasets
+datasets <- list(
+  full    = total.abund,
+  lt1000  = total.abund.lt1000,
+  lt500   = total.abund.lt500
+)
+
+all_models <- lapply(names(datasets), function(d) {
+  dat <- datasets[[d]]
+  list(
+    ta.pois    = glmmTMB(number ~ bait + (1|location), data = dat, family = "poisson"),
+    ta.nb      = glmmTMB(number ~ bait + (1|location), data = dat, family = "nbinom2"),
+    ta.zipois  = glmmTMB(number ~ bait + (1|location), ziformula = ~1, family = poisson, data = dat),
+    ta.compois = glmmTMB(number ~ bait + (1|location), data = dat, family = compois())
+  )
+}) 
+names(all_models) <- names(datasets)
+
+# Compare AIC within each dataset
+for (d in names(all_models)) {
+  cat("\n--- AIC table:", d, "---\n")
+  print(AICtab(all_models[[d]]$ta.pois,
+               all_models[[d]]$ta.nb,
+               all_models[[d]]$ta.zipois,
+               all_models[[d]]$ta.compois))
+}
+# Run this FIRST — defines the function in your environment
+export_dharma <- function(model_list,
+                          data,
+                          outdir = "./output/models and plots") {
+  
+  if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
+  
+  for (m in names(model_list)) {
+    
+    this_model <- model_list[[m]]
+    model_data <- model.frame(this_model)
+    message("Processing model: ", m)
+    
+    outfile <- file.path(outdir, paste0(m, "_diagnostics.pdf"))
+    pdf(outfile)
+    
+    tryCatch({
+      simres <- simulateResiduals(fittedModel = this_model, n = 1000)
+      testDispersion(simres)
+      plot(simres)
+      testZeroInflation(simres)
+      plotResiduals(simres, model_data$bait)
+      plotResiduals(simres, model_data$location)
+      
+    }, error = function(e) {
+      message("ERROR in model ", m, ": ", e$message)
+    })
+    
+    dev.off()
+    message("Saved: ", outfile)
+  }
+}
+
+# THEN run the export loop
+for (d in names(all_models)) {
+  export_dharma(
+    model_list = all_models[[d]],
+    outdir     = file.path("./output/models and plots", d)
+  )
+}
+## Export DHARMa diagnostics for all datasets x models
+for (d in names(all_models)) {
+  export_dharma(
+    model_list = all_models[[d]],
+    outdir     = file.path("./output/models and plots")  # separate subfolder per dataset
+  )
+}
