@@ -175,7 +175,7 @@ base_model_filtered <- glmmTMB(sample() ~ bait + (1|location),
                               family = "nbinom2")
 
 # Directory
-outdir <- "./output/models and plots/lt1000"
+outdir <- "./output/models and plots/Total abundance"
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE) #should create folder but might not
 
 # Predictor variables 
