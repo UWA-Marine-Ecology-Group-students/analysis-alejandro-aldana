@@ -1,0 +1,49 @@
+model,type,message
+total_maxn ~ bait + mean_relief + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + scytothalia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + canopy + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + macroalgae + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + sd_relief + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + scytothalia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + canopy + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + macroalgae + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + scytothalia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + canopy + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + macroalgae + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + scytothalia + macroalgae + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + scytothalia + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + scytothalia + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + canopy + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + macroalgae + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + macroalgae + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + depth_m + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + sd_relief + scytothalia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + sd_relief + canopy + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + sd_relief + macroalgae + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + sd_relief + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + sd_relief + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + scytothalia + macroalgae + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + scytothalia + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + scytothalia + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + canopy + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + macroalgae + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + macroalgae + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + mean_relief + depth_m + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + scytothalia + macroalgae + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + scytothalia + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + scytothalia + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + canopy + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + macroalgae + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + macroalgae + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + sd_relief + depth_m + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + scytothalia + macroalgae + depth_m + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + scytothalia + macroalgae + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + scytothalia + depth_m + ecklonia + (1|location),ERROR,object 'comc' not found
+total_maxn ~ bait + macroalgae + depth_m + ecklonia + (1|location),ERROR,object 'comc' not found
