@@ -50,7 +50,7 @@ ggplot(total.abund, aes(x = number)) +
   facet_wrap(.~bait, ncol = 1)+
   theme_cowplot()
 
-## boxplot of total abundance x bait (with code to save plot - copy and update as needed)
+## boxplot of total abundance x bait3
 boxplot1<-ggplot(total.abund, 
                  aes(x = bait, y = number)) +
           geom_boxplot(outlier.shape = 19,      # Show outliers as solid circles
@@ -175,7 +175,7 @@ base_model_filtered <- glmmTMB(sample() ~ bait + (1|location),
                               family = "nbinom2")
 
 # Directory
-outdir <- "./output/models and plots/Total abundance"
+outdir <- "./output/models and plots/"
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE) #should create folder but might not
 
 # Predictor variables 
