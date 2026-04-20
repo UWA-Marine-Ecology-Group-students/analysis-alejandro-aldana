@@ -170,7 +170,7 @@ ggsave("./output/models and plots/lt500/ta.bait.png",
 
 # Base model (bait only) -- this should be the model from above with the chosen distribution family
 
-base_model_filtered <- glmmTMB(sample() ~ bait + (1|location), 
+base_model_filtered <- glmmTMB(number ~ bait + (1|location), 
                               data = total.abund.filtered, 
                               family = "nbinom2")
 
@@ -289,8 +289,8 @@ fit_model_and_extract <- function(pred_vector) {
   }
   
   tibble(
-    model = paste("sample ~ bait +", pred_str, " + (1|location)"), ##update
-    predictors = pred_str,
+    model = paste("number ~ bait +", pred_str, " + (1|location)"), ##update
+    predictors = "none",
     AICc = MuMIn::AICc(m),
     LL = as.numeric(logLik(m)),
     mR2 = safe_mR2(m),
@@ -304,7 +304,7 @@ fit_model_and_extract <- function(pred_vector) {
 base_stats <- tibble(
   model = "sample ~ bait +", pred_str, "(1|location)",
   predictors = "none",
-  AICc = MuMIn::AICc(base_model),
+  AICc = MuMIn::AICc(base_model_filtered),
   LL = as.numeric(logLik(base_model)),
   mR2 = safe_mR2(base_model),
   cR2 = safe_cR2(base_model),
