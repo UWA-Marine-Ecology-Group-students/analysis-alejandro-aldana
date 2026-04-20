@@ -50,7 +50,7 @@ ggplot(total.abund, aes(x = number)) +
   facet_wrap(.~bait, ncol = 1)+
   theme_cowplot()
 
-## 1b. boxplot of total abundance x bait (with code to save plot - copy and update as needed)
+## boxplot of total abundance x bait (with code to save plot - copy and update as needed)
 boxplot1<-ggplot(total.abund, 
                  aes(x = bait, y = number)) +
           geom_boxplot(outlier.shape = 19,      # Show outliers as solid circles
@@ -65,21 +65,12 @@ boxplot1<-ggplot(total.abund,
           labs(x = "Bait", y = "Total Abundance")+
           theme_minimal()
 
-boxplot1
-
-## CODE TO EXPORT AS PNG -- NOTE: the plot that appears in the window in R Studio
-## is not what it will look like when saved. Sometimes you need to save multiple times
-## and adjust the width & height until you get your desired size
-## copy and update for each plot as you go
-
-ggsave(filename = file.path( #dont change
-                      plot_path, #directory for plot to export to
-                      "boxplot1_TA~bait.png"), #name of plot
-      plot = boxplot1, #name of your ggplot
-      width = 5, #adjust as needed
-      height = 5, #adjust as needed 
-      dpi = 600, #publication standard
-      units = "cm")
+ggsave("./output/models and plots/full/ta.bait.png",
+               plot   = boxplot1,
+               width  = 2500,
+               height = 2500,
+               units  = "px",        # specifies that width/height are in pixels
+               dpi    = 600)
 
 ##----------------------------------------------------------------------------
 ## Filtering dataset to remove samples with >1000 fish (largest outliers)
@@ -115,7 +106,12 @@ boxplot2<-ggplot(total.abund.filtered,
 
 boxplot2
 
-## ADD CODE TO SAVE HERE
+ggsave("./output/models and plots/lt1000/ta.bait.png",
+       plot   = boxplot2,
+       width  = 2500,
+       height = 2500,
+       units  = "px",        # specifies that width/height are in pixels
+       dpi    = 600)
 
 ##----------------------------------------------------------------------------
 ## Filtering dataset to remove samples with > 500 fish (other outliers)
@@ -127,7 +123,6 @@ total.abund.filtered.again <- total.abund%>%
 length(unique(total.abund.filtered.again$sample)) #96 drops
 
 ## plot freq of total abundance (filtered to < 500) counts
-
 ggplot(total.abund.filtered.again, aes(x = number)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
   labs(title = "Histogram of Abundance (<500)",
@@ -136,20 +131,37 @@ ggplot(total.abund.filtered.again, aes(x = number)) +
   theme_cowplot()
 
 ## boxplot of total abundance (filtered <500) x bait 
+boxplot3<-ggplot(total.abund.filtered.again, 
+                 aes(x = bait, y = number)) +
+  geom_boxplot(outlier.shape = 19,      # Show outliers as solid circles
+               outlier.colour = "black",
+               outlier.size = 2,
+               alpha = 0.5) + #transparency of dots
+  stat_summary(fun = mean,             # Add mean as a red triangle
+               geom = "point",
+               shape = 17,             # 17 = filled triangle
+               size = 4,
+               colour = "red") +
+  labs(x = "Bait", 
+       y = "Total Abundance")+
+  theme_minimal()
 
-## add code to make boxplot here
+boxplot3
 
+ggsave("./output/models and plots/lt500/ta.bait.png",
+       plot   = boxplot3,
+       width  = 2500,
+       height = 2500,
+       units  = "px",        # specifies that width/height are in pixels
+       dpi    = 600)
 
-## add code to save here
-
-
-################################################################################
+###############################################################################
 ##
-##      4 -- MOVING ON TO FULL SUBSETS GLMM 
+##      FULL SUBSETS GLMM 
 ##
 ###############################################################################
 
-##   full subsets to rank by most parsimonious & lowest AICc
+## full subsets to rank by most parsimonious & lowest AICc
 
 # READ ME: full subsets means we specify our predictors variables and run a loop
 ##that tests all possible models with those specified predictors
