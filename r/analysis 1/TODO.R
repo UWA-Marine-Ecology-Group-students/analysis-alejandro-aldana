@@ -126,10 +126,7 @@ total.abund.filtered.again <- total.abund%>%
 
 length(unique(total.abund.filtered.again$sample)) #96 drops
 
-
-##----------------------------------------------------------------------------
-## 3a. plot freq of total abundance (filtered to < 500) counts
-##----------------------------------------------------------------------------
+## plot freq of total abundance (filtered to < 500) counts
 
 ggplot(total.abund.filtered.again, aes(x = number)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
@@ -138,10 +135,7 @@ ggplot(total.abund.filtered.again, aes(x = number)) +
        y = "Frequency") +
   theme_cowplot()
 
-
-##----------------------------------------------------------------------------
-## 3b. boxplot of total abundance (filtered <500) x bait 
-##----------------------------------------------------------------------------
+## boxplot of total abundance (filtered <500) x bait 
 
 ## add code to make boxplot here
 
