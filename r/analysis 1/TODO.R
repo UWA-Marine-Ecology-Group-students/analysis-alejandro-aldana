@@ -1,15 +1,10 @@
-
-
-#####     TODO SCRIPT     ####
-
-
 rm(list=ls())
 
 # Libraries----
 
 # library(usethis)
 # install.packages("vctrs")
-# library('vctrs') ##??
+# library('vctrs')
 library(CheckEM)
 library(tidyverse)
 library(MuMIn)
@@ -24,15 +19,10 @@ library(bbmle) #for AICtab
 
 name <- "Baitcomp_All"
 
-##----------------------------------------------------------------------------
 ## Specify directory pathways for exporting 
-##----------------------------------------------------------------------------
-
 plot_path <- "./output/models and plots/"
 
-##----------------------------------------------------------------------------
 ## Read in the formatted data
-##----------------------------------------------------------------------------
 
 # Read in habitat data
 habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
@@ -42,9 +32,7 @@ habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
   glimpse()
 
 
-##----------------------------------------------------------------------------
 # read in Total abundance and species richness dataframe & filtering to just total abundance
-##----------------------------------------------------------------------------
 total.abund <- readRDS("./data/tidy/Baitcomp_All_ta.sr.RDS") %>%
   clean_names() %>%
   dplyr::mutate(bait     = as.factor(bait),
@@ -53,9 +41,7 @@ total.abund <- readRDS("./data/tidy/Baitcomp_All_ta.sr.RDS") %>%
   left_join(habitat, by = "sample") %>%
   glimpse()
 
-##----------------------------------------------------------------------------
-## 1a. plot freq of total abundance counts
-##----------------------------------------------------------------------------
+## plot freq of total abundance counts
 ggplot(total.abund, aes(x = number)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
   labs(title = "Histogram of total abundance counts",
@@ -64,9 +50,7 @@ ggplot(total.abund, aes(x = number)) +
   facet_wrap(.~bait, ncol = 1)+
   theme_cowplot()
 
-##----------------------------------------------------------------------------
 ## 1b. boxplot of total abundance x bait (with code to save plot - copy and update as needed)
-##----------------------------------------------------------------------------
 boxplot1<-ggplot(total.abund, 
                  aes(x = bait, y = number)) +
           geom_boxplot(outlier.shape = 19,      # Show outliers as solid circles
@@ -98,17 +82,12 @@ ggsave(filename = file.path( #dont change
       units = "cm")
 
 ##----------------------------------------------------------------------------
-## 2. Filtering dataset to remove samples with >1000 fish (largest outliers)
-##----------------------------------------------------------------------------
-
+## Filtering dataset to remove samples with >1000 fish (largest outliers)
 total.abund.filtered <- total.abund%>%
   dplyr::filter(!number > 1000)%>% 
   glimpse()
 
-
-##----------------------------------------------------------------------------
-## 2a. plot freq of total abundance (filtered to <1000) counts
-##----------------------------------------------------------------------------
+## plot freq of total abundance (filtered to <1000) counts
 
 ggplot(total.abund.filtered, aes(x = number)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
@@ -117,9 +96,7 @@ ggplot(total.abund.filtered, aes(x = number)) +
        y = "Frequency") +
   theme_cowplot()
 
-##----------------------------------------------------------------------------
-## 2b. boxplot of total abundance (filtered <1000) x bait 
-##----------------------------------------------------------------------------
+## boxplot of total abundance (filtered <1000) x bait 
 
 boxplot2<-ggplot(total.abund.filtered, 
                  aes(x = bait, y = number)) +
@@ -141,8 +118,7 @@ boxplot2
 ## ADD CODE TO SAVE HERE
 
 ##----------------------------------------------------------------------------
-## 3. Filtering dataset to remove samples with > 500 fish (other outliers)
-##----------------------------------------------------------------------------
+## Filtering dataset to remove samples with > 500 fish (other outliers)
 
 total.abund.filtered.again <- total.abund%>%
   dplyr::filter(!number > 500)%>% 
