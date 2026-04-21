@@ -77,7 +77,9 @@ total_abundance <- comp_count_filtered %>%
   mutate(total_maxn = sum(count, na.rm = TRUE)) %>%
   ungroup() %>%
   distinct(sample, .keep_all = TRUE)%>%
-  select(-c(scientific, count)) ##these are no longer required
+  select(-c(scientific, count))%>% ##these are no longer required
+  dplyr::mutate(location = as.factor(location), bait = as.factor(bait)) %>%
+  dplyr::mutate(depth_m = as.numeric(depth_m))
 
 ##lets double check that worked correctly
 sum(comp_count_filtered$count) #5789 fish
@@ -351,11 +353,18 @@ Anova(TA_sdr_canopy)
 
 ##TODO - can keep testing these manually OR try full subsets  below
 
-
+################################################################################
+##
+## FULL SUBSETS GLMM FOR TOTAL ABUNDANCE
+##
+################################################################################
 ##------------------------------------------------------------------------------
-## FULL SUBSETS GLMM - same as above, but we don't check significance first. We
-## find best model based on AICc, our conditional r2(with ranodm effects) and our
+## FULL SUBSETS GLMM - does same as above for you except  we don't check 
+## significance first. 
+## We find best model based on AICc, our conditional r2(with ranodm effects) and our
 ## maringal r2 (without random effects)
+
+###### RUN THIS WHOLE SECTION TOGETHER UNTIL 'END'
 
 ## specify base / null model
 
@@ -363,11 +372,13 @@ base_model <- glmmTMB(total_maxn ~ bait + (1|location),
                      data = total_abundance,
                      family = "nbinom2")
 
-# Directory
+##-------------------------------------
+## Directory
 outdir <- "./output/models and plots"
 if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE) #should create folder but might not
 
-# Predictor variables 
+##-------------------------------------
+## Predictor variables 
 pred_vars <- c("mean_relief", 
                "sd_relief",
                "scytothalia",
@@ -377,6 +388,7 @@ pred_vars <- c("mean_relief",
                "ecklonia"
 )
 
+##-------------------------------------
 # All predictor combinations: 1, 2, or 3 predictors
 pred_combos <- c(
   combn(pred_vars, 1, simplify = FALSE),
@@ -384,6 +396,7 @@ pred_combos <- c(
   combn(pred_vars, 3, simplify = FALSE)
 )
 
+##-------------------------------------
 # Function to remove predictor conflicts (canopy with scyto, ecklonia or macro)
 # This is because canopy = scytothalia + ecklonia + other large canopy forming macros
 # & 'macroalgae' is mixed macro (all the non canopy stuff) and is negatively correlated with canopy - see habitat transformations script
@@ -406,12 +419,14 @@ has_predictor_conflict <- function(pred_vector) {
 # Remove conflicting combinations
 pred_combos <- Filter(function(x) !has_predictor_conflict(x), pred_combos)
 
-# Store failures (failed models)
+##-------------------------------------
+# Store failures (failed models) - so we can look at any that didn't work
 failure_list <- list()
 failure_id <- 1
 
+##-------------------------------------
 # Functions to extract conditional R2 with adjusted tolerance
-# Because site had extremely low variance
+# Because location had extremely low variance
 safe_cR2 <- function(model) {
   tryCatch({
     r2 <- performance::r2(model, tolerance = 1e-10)
@@ -438,14 +453,13 @@ fit_model_and_extract <- function(pred_vector) {
   f <- as.formula(paste(
     "total_maxn ~ bait +", pred_str, "+ (1|location)" 
   ))
-}
   
   # Fit with full error + warning capture
   m <- withCallingHandlers(
     tryCatch(
       glmmTMB(f, 
               data = total_abundance, 
-              family = "nbinom2", 
+              family = "nbinom2"), 
       error = function(e) {
         failure_list[[failure_id <<- failure_id + 1]] <<- tibble(
           model = paste("total_maxn ~ bait +", pred_str, "+ (1|location)"), 
@@ -487,7 +501,7 @@ fit_model_and_extract <- function(pred_vector) {
     cR2 = safe_cR2(m),
     RDF = df.residual(m)
   )
-
+}
 
 # Getting comparison stats for base model
 
@@ -532,4 +546,280 @@ failed_models <- bind_rows(failure_list)
 # Save to CSV
 write_csv(failed_models, file.path(outdir, "totalmaxn_failed_models.csv"))
 
-#---- END ---
+##################### END #####################################################
+
+## have a look at the final_table - the best model (that best explains our data)
+## is the one at the top
+
+best_model <- glmmTMB(total_maxn ~ bait + canopy + (1|location),
+                      data = total_abundance,
+                      family = "nbinom2")
+
+summary(best_model)
+Anova(best_model)
+
+##------------------------------------------------------------------------------
+## CHECK BEST MODEL DIAGNOSTICS
+##------------------------------------------------------------------------------
+## we need to double check that our best model is well fitted by the negative
+## binomial family
+
+simres.best <- simulateResiduals(best_model, n = 1000) 
+
+plot(simres.best)
+testDispersion(simres.best)
+plotResiduals(simres.best, 
+              best_model$bait) ##we are looking for red lines or stars
+plotResiduals(simres.best, 
+              best_model$canopy) 
+
+plotResiduals(simres.best, 
+              best_model$location) 
+
+##------------------------------------------------------------------------------
+## MAKING MODEL PLOTS (predicted total_maxN)
+##------------------------------------------------------------------------------
+
+##look at influence of canopy first
+model.preds1 <- predict_response(best_model,
+                                terms = c("canopy", "bait"), #canopy first because significant
+                                bias_correction = T) #because 'small sample size'
+#don't worry about the warning - its because location means next to nothing
+
+model.preds1 #have a look at what it does
+
+#example plot
+plot(model.preds1)
+# as canopy cover increases, total_maxN decreases. 
+
+##lets look at bait now - which we really care about even though theres no difference
+model.preds2 <- predict_response(best_model,
+                                 terms = c("bait"), #will automatically average over canopy
+                                 bias_correction = T) 
+##ignore warning
+
+model.preds2
+plot(model.preds2)
+
+################################################################################
+##
+## FULL SUBSETS WITH INTERACTIONS INCLUDED BETWEEN HABITAT COVARIATES
+##
+################################################################################
+###### RUN THIS WHOLE SECTION TOGETHER UNTIL 'END'
+
+## specify base / null model
+
+base_model <- glmmTMB(total_maxn ~ bait + (1|location),
+                      data = total_abundance,
+                      family = "nbinom2")
+
+##-------------------------------------
+## Directory
+outdir <- "./output/models and plots"
+if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE) #should create folder but might not
+
+##-------------------------------------
+## Predictor variables 
+pred_vars <- c("mean_relief", 
+               "sd_relief",
+               "scytothalia",
+               "canopy", 
+               "macroalgae", 
+               "depth_m",
+               "ecklonia"
+)
+
+#-------------------------------------------------------------------
+#   Allowing interactions
+#--------------------------------------------------------------------
+# Specify allowed interactions (as character vectors of length 2)
+# These will be treated as single predictors that can be combined with others
+interaction_pairs <- list(
+  c("depth_m", "ecklonia"),
+  c("depth_m", "scytothalia"),
+  c("depth_m", "sd_relief"),
+  c("depth_m", "mean_relief")
+)
+
+# Create interaction terms as single predictors
+interaction_terms <- sapply(interaction_pairs, function(pair) {
+  paste(pair[1], pair[2], sep = ":")
+})
+
+# Combine main effect predictors with interaction terms
+all_predictors <- c(pred_vars, interaction_terms)
+
+#---------------------------------------------------------
+# All predictor combinations: 1, 2, or 3 predictors (including interactions)
+pred_combos <- c(
+  combn(all_predictors, 1, simplify = FALSE),
+  combn(all_predictors, 2, simplify = FALSE),
+  combn(all_predictors, 3, simplify = FALSE)
+)
+
+#---------------------------------------------------------
+# Filter out invalid combinations
+# Function to check if a combination has an interaction with its main effects
+has_interaction_conflict <- function(pred_vector) {
+  # Check each interaction term
+  for (pair in interaction_pairs) {
+    interaction_term <- paste(pair[1], pair[2], sep = ":")
+    # If interaction is in the model AND one of its main effects is also present
+    if (interaction_term %in% pred_vector &&
+        (pair[1] %in% pred_vector || pair[2] %in% pred_vector)) {
+      return(TRUE)
+    }
+  }
+  return(FALSE)
+}
+
+# Function to check if canopy is with ecklonia or scytothalia
+has_canopy_conflict <- function(pred_vector) {
+  # If canopy is in the model with either ecklonia or scytothalia, exclude it
+  if ("canopy" %in% pred_vector &&
+      ("ecklonia" %in% pred_vector || "scytothalia" %in% pred_vector)) {
+    return(TRUE)
+  }
+  return(FALSE)
+}
+
+# Remove conflicting combinations
+pred_combos <- Filter(function(x) !has_interaction_conflict(x) && !has_canopy_conflict(x),
+                      pred_combos)
+
+##-------------------------------------
+# Store failures (failed models) - so we can look at any that didn't work
+failure_list <- list()
+failure_id <- 1
+
+##-------------------------------------
+# Functions to extract conditional R2 with adjusted tolerance
+# Because location had extremely low variance
+safe_cR2 <- function(model) {
+  tryCatch({
+    r2 <- performance::r2(model, tolerance = 1e-10)
+    return(r2$R2_conditional)
+  }, error = function(e) {
+    return(NA)
+  })
+}
+
+# Function to safely extract marginal R2 
+safe_mR2 <- function(model) {
+  tryCatch({
+    r2 <- performance::r2(model, tolerance = 1e-10)
+    return(r2$R2_marginal)
+  }, error = function(e) {
+    return(NA)
+  })
+}
+
+# Fit model and extract stats
+fit_model_and_extract <- function(pred_vector) {
+  
+  pred_str <- paste(pred_vector, collapse = " + ") 
+  f <- as.formula(paste(
+    "total_maxn ~ bait +", pred_str, "+ (1|location)" 
+  ))
+  
+  # Fit with full error + warning capture
+  m <- withCallingHandlers(
+    tryCatch(
+      glmmTMB(f, 
+              data = total_abundance, 
+              family = "nbinom2"), 
+      error = function(e) {
+        failure_list[[failure_id <<- failure_id + 1]] <<- tibble(
+          model = paste("total_maxn ~ bait +", pred_str, "+ (1|location)"), 
+          type = "ERROR",
+          message = e$message
+        )
+        return(NULL)
+      }
+    ),
+    warning = function(w) {
+      failure_list[[failure_id <<- failure_id + 1]] <<- tibble(
+        model = paste("total_maxn ~ bait +", pred_str, "+ (1|location)"), 
+        type = "WARNING",
+        message = w$message
+      )
+      invokeRestart("muffleWarning")
+    }
+  )
+  
+  # If model did not fit, return NA row
+  if (is.null(m)) {
+    return(tibble(
+      model = paste("bait +", pred_str, "+ (1|location)"), 
+      predictors = pred_str,
+      AICc = NA,
+      logLik = NA,
+      mR2 = NA,
+      cR2 = NA,
+      RDF = NA
+    ))
+  }
+  
+  tibble(
+    model = paste("bait +", pred_str, "+ (1|location)"), 
+    predictors = pred_str,
+    AICc = MuMIn::AICc(m),
+    LL = as.numeric(logLik(m)),
+    mR2 = safe_mR2(m),
+    cR2 = safe_cR2(m),
+    RDF = df.residual(m)
+  )
+}
+
+# Getting comparison stats for base model
+
+base_stats <- tibble(
+  model = "bait",
+  predictors = "none",
+  AICc = MuMIn::AICc(base_model),
+  LL = as.numeric(logLik(base_model)),
+  mR2 = safe_mR2(base_model),
+  cR2 = safe_cR2(base_model),
+  RDF = df.residual(base_model)
+)
+
+# Fit all 1–3 predictor models
+model_stats <- map_dfr(pred_combos, fit_model_and_extract)
+
+# #---------------------------------------------------------
+# # Combine + rank with adjusted AICc - WITH INTERACTIONS
+final_table <- bind_rows(base_stats, model_stats) %>%
+  filter(!is.na(AICc)) %>%
+  mutate(
+    # Count number of predictors (excluding bait which is in all models)
+    # Interactions count as 1 additional parameter
+    n_predictors = if_else(
+      predictors == "none",
+      0,
+      str_count(predictors, "\\+") + 1
+    ),
+    # Add penalty of 2 AICc units per additional predictor beyond base model
+    adjAICc = AICc + 2 * (n_predictors - min(n_predictors)),
+    deltaAICc = AICc - min(AICc),
+    delta_adjAICc = adjAICc - min(adjAICc)
+  ) %>%
+  arrange(adjAICc)  # Sort by adjusted AICc
+
+# Export CSV
+write_csv(final_table, file.path(outdir, "totalmaxn_best_models_int.csv"))
+
+# Display top models
+print(final_table %>% 
+        select(model, n_predictors, AICc, adjAICc, delta_adjAICc, mR2, cR2))
+
+#---------------------------------------------------------
+# Convert failures to a table
+failed_models <- bind_rows(failure_list)
+
+# Save to CSV
+write_csv(failed_models, file.path(outdir, "totalmaxn_failed_models_int.csv"))
+
+##################### END #####################################################
+
+##bait + canopy + (1|location) still the best model. Yay
