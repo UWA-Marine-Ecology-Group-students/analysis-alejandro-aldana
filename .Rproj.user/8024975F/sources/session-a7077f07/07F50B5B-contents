@@ -247,7 +247,7 @@ fit_model_and_extract <- function(pred_vector) {
   
   pred_str <- paste(pred_vector, collapse = " + ") 
   f <- as.formula(paste(
-    "sample ~ bait +", pred_str, "+ (1|location)" ##update green parts from your base model
+    "number ~ bait +", pred_str, "+ (1|location)" ##update green parts from your base model
   ))
   
   # Fit with full error + warning capture
@@ -267,7 +267,7 @@ fit_model_and_extract <- function(pred_vector) {
     ),
     warning = function(w) {
       failure_list[[failure_id <<- failure_id + 1]] <<- tibble(
-        model = paste("sample ~ bait +", pred_str, "+ (1|location)"), ##update
+        model = paste("number ~ bait +", pred_str, "+ (1|location)"), ##update
         type = "WARNING",
         message = w$message
       )
@@ -278,7 +278,7 @@ fit_model_and_extract <- function(pred_vector) {
   # If model did not fit, return NA row
   if (is.null(m)) {
     return(tibble(
-      model = paste("sample ~ bait +", pred_str, "+ (1|location)"), ##update
+      model = paste("number ~ bait +", pred_str, "+ (1|location)"), ##update
       predictors = pred_str,
       AICc = NA,
       logLik = NA,
@@ -290,7 +290,7 @@ fit_model_and_extract <- function(pred_vector) {
   
   tibble(
     model = paste("number ~ bait +", pred_str, " + (1|location)"), ##update
-    predictors = "none",
+    predictors = pred_str,
     AICc = MuMIn::AICc(m),
     LL = as.numeric(logLik(m)),
     mR2 = safe_mR2(m),
@@ -302,13 +302,13 @@ fit_model_and_extract <- function(pred_vector) {
 # Getting comparison stats for base model
 
 base_stats <- tibble(
-  model = "sample ~ bait +", pred_str, "(1|location)",
+  model = "number ~ bait + (1|location)",
   predictors = "none",
   AICc = MuMIn::AICc(base_model_filtered),
-  LL = as.numeric(logLik(base_model)),
-  mR2 = safe_mR2(base_model),
-  cR2 = safe_cR2(base_model),
-  RDF = df.residual(base_model)
+  LL = as.numeric(logLik(base_model_filtered)),
+  mR2 = safe_mR2(base_model_filtered),
+  cR2 = safe_cR2(base_model_filtered),
+  RDF = df.residual(base_model_filtered)
 )
 
 # Fit all 1–3 predictor models
@@ -329,7 +329,7 @@ final_table <- bind_rows(base_stats, model_stats) %>%
   arrange(adjAICc)  # Sort by adjusted AICc
 
 # Export CSV
-write_csv(final_table, file.path(outdir, "TA<1000_best_models.csv"))
+write_csv(final_table, file.path(outdir, "TA_1000_best_models.csv"))
 
 # Display top models
 print(final_table %>% 
@@ -340,7 +340,7 @@ print(final_table %>%
 failed_models <- bind_rows(failure_list)
 
 # Save to CSV
-write_csv(failed_models, file.path(outdir, "TA<1000_failed_models.csv"))
+write_csv(failed_models, file.path(outdir, "TA_1000_failed_models.csv"))
 
 ##-------------------------- END -----------------------------------------------
 
