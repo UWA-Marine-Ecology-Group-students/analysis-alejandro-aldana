@@ -59,19 +59,11 @@ species_summary <- comp_count %>%
 ## Trachinops noarlungae & Parapriacanthus elongatus are seen in huge numbers in a single deployment
 ## this will inflate their importance in the dataset and potentially skew the results
 ## we will now remove them
-## Also removing squid & dolphins from the analysis as they are not fish
-unique(comp_count$scientific)
 
 comp_count_filtered <- comp_count %>%
   filter(!scientific == "Plesiopidae Trachinops noarlungae")%>%
-  filter(!scientific == "Pempherididae Parapriacanthus elongatus")%>%
-  filter(!scientific == "Loliginidae Sepioteuthis australis")%>%
-  filter(!scientific == "Delphinidae Delphinus delphis")
-
-
-##see now we have 8900 obs of 35 variables
-
-length(unique(comp_count_filtered$scientific)) #89 unique species x 100 drops 
+  filter(!scientific == "Pempherididae Parapriacanthus elongatus")
+##see now we have 9100 obs of 35 variables
 
 #------------------------------------------------------------------------------
 ## CALCULATING TOTAL RELATIVE ABUNDANCE (Total MaxN)
@@ -89,9 +81,9 @@ total_abundance <- comp_count_filtered %>%
   dplyr::mutate(location = as.factor(location), bait = as.factor(bait)) %>%
   dplyr::mutate(depth_m = as.numeric(depth_m))
 
-##lets double check that worked correctly - they should match
-sum(comp_count_filtered$count) #5782 fish
-sum(total_abundance$total_maxn) #5782 fish
+##lets double check that worked correctly
+sum(comp_count_filtered$count) #5789 fish
+sum(total_abundance$total_maxn) #5789 fish
 
 #------------------------------------------------------------------------------
 ## VISUALISING TOTAL ABUNDANCE DATA
@@ -151,13 +143,7 @@ boxplot
 ##---------------------
 ## canopy x bait
 ggplot(total_abundance, aes(x= bait, y = canopy))+
-  geom_boxplot()+
-  stat_summary(fun = mean,             # Add mean as a red triangle
-               geom = "point",
-               shape = 17,             # 17 = filled triangle
-               size = 4,
-               colour = "red") +
-  theme_minimal()
+  geom_boxplot()
 
 canopy <- lm(canopy ~bait, data = total_abundance)
 Anova(canopy) 
@@ -168,13 +154,7 @@ Anova(canopy)
 ## depth x bait
 
 ggplot(total_abundance, aes(x= bait, y = depth_m))+
-  geom_boxplot()+
-  stat_summary(fun = mean,             # Add mean as a red triangle
-               geom = "point",
-               shape = 17,             # 17 = filled triangle
-               size = 4,
-               colour = "red") +
-  theme_minimal()
+  geom_boxplot()
 
 depth <- lm(depth_m~bait, data = total_abundance)
 Anova(depth)
@@ -253,7 +233,6 @@ testDispersion(simres.nbinom)
 testZeroInflation(simres.nbinom) #no zeros in this dataframe so that makes sense
 plotResiduals(simres.nbinom, 
               TA_nbinom$bait) 
-AICc(TA_nbinom)
 ## the Levenes test for homogeneity of variance is significant
 ## but thats fine, because we know its not normally distributed anyway
 ## and we are using a negative binomial GLMM which is what we should do if
@@ -280,7 +259,7 @@ AICc(TA_nbinom)
 performance::r2(TA_nbinom, 
                 tolerance = 1e-10) ## setting this low because of location meaning almost nothing
 
-performance::r2(TA_nbinom) ## see difference - need to keep the tolerance there
+
 
 
 # Remember these are our predictor variables
@@ -346,7 +325,7 @@ TA_ecklonia<- glmmTMB(total_maxn ~ bait + ecklonia + (1|location),
                      data = total_abundance,
                      family = "nbinom2")
 Anova(TA_ecklonia) ##significant
-AICc(TA_canopy, TA_ecklonia)
+
 ##----------------------
 
 TA_macroalgae<- glmmTMB(total_maxn ~ bait + macroalgae + (1|location),
@@ -371,14 +350,6 @@ TA_sdr_canopy <- glmmTMB(total_maxn ~ bait + sd_relief + canopy + (1|location),
                         data = total_abundance,
                         family = "nbinom2")
 Anova(TA_sdr_canopy) 
-AICc(TA_canopy, TA_sdr_canopy)
-
-##Canopy & depth
-TA_canopy_dep <- glmmTMB(total_maxn ~ bait + depth_m + canopy + (1|location),
-                         data = total_abundance,
-                         family = "nbinom2")
-Anova(TA_canopy_dep) 
-AICc(TA_canopy, TA_canopy_dep)
 
 ##TODO - can keep testing these manually OR try full subsets  below
 
@@ -393,7 +364,7 @@ AICc(TA_canopy, TA_canopy_dep)
 ## We find best model based on AICc, our conditional r2(with ranodm effects) and our
 ## maringal r2 (without random effects)
 
-###### RUN THIS WHOLE SECTION TOGETHER UNTIL 'END' 
+###### RUN THIS WHOLE SECTION TOGETHER UNTIL 'END'
 
 ## specify base / null model
 
@@ -447,7 +418,7 @@ has_predictor_conflict <- function(pred_vector) {
 
 # Remove conflicting combinations
 pred_combos <- Filter(function(x) !has_predictor_conflict(x), pred_combos)
-pred_combos
+
 ##-------------------------------------
 # Store failures (failed models) - so we can look at any that didn't work
 failure_list <- list()
@@ -474,7 +445,7 @@ safe_mR2 <- function(model) {
     return(NA)
   })
 }
-##------------------------------------------------------------------------------
+
 # Fit model and extract stats
 fit_model_and_extract <- function(pred_vector) {
   
@@ -544,12 +515,9 @@ base_stats <- tibble(
   RDF = df.residual(base_model)
 )
 
-##------------------------------------------------------------------------------
-
-# Fit all 1–3 predictor models -- This line actually runs the functions
+# Fit all 1–3 predictor models
 model_stats <- map_dfr(pred_combos, fit_model_and_extract)
 
-##------------------------------------------------------------------------------
 # Combine + rank with adjusted AICc
 final_table <- bind_rows(base_stats, model_stats) %>%
   filter(!is.na(AICc)) %>%
@@ -571,10 +539,9 @@ write_csv(final_table, file.path(outdir, "totalmaxn_best_models.csv"))
 print(final_table %>% 
         select(model, n_predictors, AICc, adjAICc, delta_adjAICc, mR2, cR2))
 
-##------------------------------------------------------------------------------
+#---------------------------------------------------------
 # Convert failures to a table
-failed_models <- bind_rows(failure_list)%>%
-  print()
+failed_models <- bind_rows(failure_list)
 
 # Save to CSV
 write_csv(failed_models, file.path(outdir, "totalmaxn_failed_models.csv"))
@@ -607,12 +574,12 @@ plotResiduals(simres.best,
               best_model$canopy) 
 
 plotResiduals(simres.best, 
-              best_model$location) ##TODO - Hannah to double check whats happening here
+              best_model$location) 
 
 ##------------------------------------------------------------------------------
 ## MAKING MODEL PLOTS (predicted total_maxN)
 ##------------------------------------------------------------------------------
-library(ggeffects)
+
 ##look at influence of canopy first
 model.preds1 <- predict_response(best_model,
                                 terms = c("canopy", "bait"), #canopy first because significant
@@ -672,10 +639,7 @@ interaction_pairs <- list(
   c("depth_m", "ecklonia"),
   c("depth_m", "scytothalia"),
   c("depth_m", "sd_relief"),
-  c("depth_m", "mean_relief"),
-  c("depth_m", "canopy"),
-  c("canopy", "sd_relief"),
-  c("canopy", "mean_relief")
+  c("depth_m", "mean_relief")
 )
 
 # Create interaction terms as single predictors
