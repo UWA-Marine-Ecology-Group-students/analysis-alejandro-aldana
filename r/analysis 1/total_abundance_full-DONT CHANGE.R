@@ -412,8 +412,7 @@ AICc(TA_canopy, TA_canopy_dep)
 ##------------------------------------------------------------------------------
 ## FULL SUBSETS GLMM - does same as above for you except  we don't check 
 ## significance first. 
-## We find best model based on AICc, our conditional r2(with ranodm effects) and our
-## maringal r2 (without random effects)
+## We find best model based on AICc, our Conditional R2 and our Marginal R2
 
 ###### RUN THIS WHOLE SECTION TOGETHER UNTIL 'END' 
 
@@ -448,8 +447,8 @@ pred_combos <- c(
 )
 
 ##-------------------------------------
-# Function to remove predictor conflicts (canopy with scyto, ecklonia or macro)
-# This is because canopy = scytothalia + ecklonia + other large canopy forming macros
+# Function to remove predictor conflicts (canopy with Scytothalia, Ecklonia or macro)
+# This is because canopy = Scytothalia + Ecklonia + other large canopy forming macros
 # & 'macroalgae' is mixed macro (all the non canopy stuff) and is negatively correlated with canopy - see habitat transformations script
 
 has_predictor_conflict <- function(pred_vector) {
@@ -476,7 +475,7 @@ failure_list <- list()
 failure_id <- 1
 
 ##-------------------------------------
-# Functions to extract conditional R2 with adjusted tolerance
+# Functions to extract Conditional R2 with adjusted tolerance
 # Because location had extremely low variance
 safe_cR2 <- function(model) {
   tryCatch({
@@ -880,4 +879,4 @@ write_csv(failed_models, file.path(outdir, "totalmaxn_failed_models_int.csv"))
 
 ##################### END #####################################################
 
-##bait + canopy + (1|location) still the best model. Yay
+## bait + canopy + (1|location) still the best model !!
