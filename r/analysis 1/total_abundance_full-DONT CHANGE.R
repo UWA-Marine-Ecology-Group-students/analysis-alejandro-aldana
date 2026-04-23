@@ -176,8 +176,9 @@ ggplot(total_abundance, aes(x= bait, y = depth_m))+
 
 depth <- lm(depth_m~bait, data = total_abundance)
 Anova(depth)
-
 ## depth is not significant nor relevant
+
+
 ##---------------------
 ## mean relief x bait
 
@@ -186,8 +187,9 @@ ggplot(total_abundance, aes(x= bait, y = mean_relief))+
 
 meanrelief <- lm(mean_relief~bait, data = total_abundance)
 Anova(meanrelief)
-
 ## mean relief is not significant either
+
+
 ##---------------------
 ## sd relief x bait
 
@@ -196,8 +198,9 @@ ggplot(total_abundance, aes(x= bait, y = sd_relief))+
 
 sdrelief <- lm(sd_relief~bait, data = total_abundance)
 Anova(sdrelief)
-
 ## standard deviation relief is also not significant
+
+
 ##---------------------
 ## ecklonia x bait
 
@@ -216,6 +219,8 @@ ggplot(total_abundance, aes(x= bait, y = scytothalia))+
 scyto <- lm(scytothalia~bait, data = total_abundance)
 Anova(scyto)
 
+## scytothalia shows is not significant
+
 ##---------------------
 ## macro x bait
 
@@ -224,6 +229,8 @@ ggplot(total_abundance, aes(x= bait, y = macroalgae))+
 
 macroalgae <- lm(macroalgae~bait, data = total_abundance)
 Anova(macroalgae)
+## not significant either
+
 
 ##------------------------------------------------------------------------------
 ## MODELLING STEP 1 - DISTRIBUTION FAMILY
