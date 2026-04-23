@@ -95,7 +95,7 @@ sum(total_abundance$total_maxn) #5782 fish
 #------------------------------------------------------------------------------
 ## VISUALISING TOTAL ABUNDANCE DATA
 ##------------------------------------------------------------------------------
-## lets visualize the frequency of our total_maxn again
+## lets visualize the frequency of our total_maxn
 
 ggplot(total_abundance, aes(x = total_maxn)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
@@ -141,13 +141,12 @@ boxplot
 ## UNDERSTANDING INFLUENCE OF HABITAT
 ##------------------------------------------------------------------------------
 
-## We need to check if there is a influence of habitat
+## We need to check if there is an influence of habitat
 ## we are doing this so we can control for the effect of habitat on total maxn
 ## and make sure that if we detect a difference between bait types, its actually 
 ## because of the bait and not because of habitat
-
-
 ##---------------------
+
 ## canopy x bait
 ggplot(total_abundance, aes(x= bait, y = canopy))+
   geom_boxplot()+
@@ -160,7 +159,7 @@ ggplot(total_abundance, aes(x= bait, y = canopy))+
 
 canopy <- lm(canopy ~bait, data = total_abundance)
 Anova(canopy) 
-##by chance there is a difference in canopy forming macroalgae between
+## by chance there is a difference in canopy forming macroalgae between
 ## the bait types. 
 
 ##---------------------
@@ -178,6 +177,7 @@ ggplot(total_abundance, aes(x= bait, y = depth_m))+
 depth <- lm(depth_m~bait, data = total_abundance)
 Anova(depth)
 
+## depth is not significant nor relevant
 ##---------------------
 ## mean relief x bait
 
@@ -187,6 +187,7 @@ ggplot(total_abundance, aes(x= bait, y = mean_relief))+
 meanrelief <- lm(mean_relief~bait, data = total_abundance)
 Anova(meanrelief)
 
+## mean relief is not significant either
 ##---------------------
 ## sd relief x bait
 
@@ -196,6 +197,7 @@ ggplot(total_abundance, aes(x= bait, y = sd_relief))+
 sdrelief <- lm(sd_relief~bait, data = total_abundance)
 Anova(sdrelief)
 
+## standard deviation relief is also not significant
 ##---------------------
 ## ecklonia x bait
 
@@ -203,7 +205,7 @@ ggplot(total_abundance, aes(x= bait, y = ecklonia))+
   geom_boxplot()
 
 ecklonia <- lm(ecklonia~bait, data = total_abundance)
-Anova(ecklonia) ##almost significant
+Anova(ecklonia) ## close but not significant
 
 ##---------------------
 ## scytothalia x bait
