@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-## Understanding your complete count data
+## Understanding complete count data
 ##
 
 rm(list=ls())

@@ -58,8 +58,7 @@ species_summary <- comp_count %>%
 
 ## Trachinops noarlungae & Parapriacanthus elongatus are seen in huge numbers in a single deployment
 ## this will inflate their importance in the dataset and potentially skew the results
-## we will now remove them
-## Also removing squid & dolphins from the analysis as they are not fish
+
 unique(comp_count$scientific)
 
 comp_count_filtered <- comp_count %>%
@@ -77,7 +76,7 @@ length(unique(comp_count_filtered$scientific)) #89 unique species x 100 drops
 ## CALCULATING TOTAL RELATIVE ABUNDANCE (Total MaxN)
 ##------------------------------------------------------------------------------
 
-## next we need to calculate the total relative abundance per sample again, 
+## next its needed to calculate the total relative abundance per sample again, 
 ## and I'm going to change the name 'count' to total_maxn
 
 total_abundance <- comp_count_filtered %>%
@@ -96,7 +95,7 @@ sum(total_abundance$total_maxn) #5782 fish
 #------------------------------------------------------------------------------
 ## VISUALISING TOTAL ABUNDANCE DATA
 ##------------------------------------------------------------------------------
-## lets visualise the frequency of our total_maxn again
+## lets visualize the frequency of our total_maxn
 
 ggplot(total_abundance, aes(x = total_maxn)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
@@ -142,13 +141,12 @@ boxplot
 ## UNDERSTANDING INFLUENCE OF HABITAT
 ##------------------------------------------------------------------------------
 
-## We need to check if there is a influence of habitat
+## We need to check if there is an influence of habitat
 ## we are doing this so we can control for the effect of habitat on total maxn
 ## and make sure that if we detect a difference between bait types, its actually 
 ## because of the bait and not because of habitat
-
-
 ##---------------------
+
 ## canopy x bait
 ggplot(total_abundance, aes(x= bait, y = canopy))+
   geom_boxplot()+
@@ -161,7 +159,7 @@ ggplot(total_abundance, aes(x= bait, y = canopy))+
 
 canopy <- lm(canopy ~bait, data = total_abundance)
 Anova(canopy) 
-##by chance there is a difference in canopy forming macroalgae between
+## by chance there is a difference in canopy forming macroalgae between
 ## the bait types. 
 
 ##---------------------
@@ -178,6 +176,8 @@ ggplot(total_abundance, aes(x= bait, y = depth_m))+
 
 depth <- lm(depth_m~bait, data = total_abundance)
 Anova(depth)
+## depth is not significant nor relevant
+
 
 ##---------------------
 ## mean relief x bait
@@ -187,6 +187,8 @@ ggplot(total_abundance, aes(x= bait, y = mean_relief))+
 
 meanrelief <- lm(mean_relief~bait, data = total_abundance)
 Anova(meanrelief)
+## mean relief is not significant either
+
 
 ##---------------------
 ## sd relief x bait
@@ -196,6 +198,8 @@ ggplot(total_abundance, aes(x= bait, y = sd_relief))+
 
 sdrelief <- lm(sd_relief~bait, data = total_abundance)
 Anova(sdrelief)
+## standard deviation relief is also not significant
+
 
 ##---------------------
 ## ecklonia x bait
@@ -204,7 +208,7 @@ ggplot(total_abundance, aes(x= bait, y = ecklonia))+
   geom_boxplot()
 
 ecklonia <- lm(ecklonia~bait, data = total_abundance)
-Anova(ecklonia) ##almost significant
+Anova(ecklonia) ## close but not significant
 
 ##---------------------
 ## scytothalia x bait
@@ -215,6 +219,8 @@ ggplot(total_abundance, aes(x= bait, y = scytothalia))+
 scyto <- lm(scytothalia~bait, data = total_abundance)
 Anova(scyto)
 
+## scytothalia shows is not significant
+
 ##---------------------
 ## macro x bait
 
@@ -223,6 +229,8 @@ ggplot(total_abundance, aes(x= bait, y = macroalgae))+
 
 macroalgae <- lm(macroalgae~bait, data = total_abundance)
 Anova(macroalgae)
+## not significant either
+
 
 ##------------------------------------------------------------------------------
 ## MODELLING STEP 1 - DISTRIBUTION FAMILY
@@ -247,23 +255,24 @@ TA_nbinom <- glmmTMB(total_maxn ~ bait + (1|location),
                      family = "nbinom2")
 
 simres.nbinom <- simulateResiduals(TA_nbinom, n = 1000)
-
 plot(simres.nbinom)
+## probability distribution that best fits the data
+
 testDispersion(simres.nbinom)
 testZeroInflation(simres.nbinom) #no zeros in this dataframe so that makes sense
 plotResiduals(simres.nbinom, 
               TA_nbinom$bait) 
 AICc(TA_nbinom)
-## the Levenes test for homogeneity of variance is significant
-## but thats fine, because we know its not normally distributed anyway
+## the Levene test for homogeneity of variance is significant
+## that's fine because we know its not normally distributed anyway
 ## and we are using a negative binomial GLMM which is what we should do if
-## the levenes test is significant
+## the Levene test is significant
 
 ##------------------------------------------------------------------------------
 ## MODELLING STEP 2 - DOING THE GLMM MANUALLY - "FORWARD STEPWISE APPROACH"
 ##------------------------------------------------------------------------------
 
-## Forward stepwise approach - this is where you start off with your base model
+## Forward step wise approach - this is where you start off with your base model
 ## also called a 'null' model and add predictors one at a time and check for significance
 
 ##lets look at our base model first
@@ -280,7 +289,7 @@ AICc(TA_nbinom)
 performance::r2(TA_nbinom, 
                 tolerance = 1e-10) ## setting this low because of location meaning almost nothing
 
-performance::r2(TA_nbinom) ## see difference - need to keep the tolerance there
+performance::r2(TA_nbinom) ## see the difference? - we need to keep the tolerance there
 
 
 # Remember these are our predictor variables
@@ -293,7 +302,7 @@ pred_vars <- c("depth_m",
                "ecklonia")
 
 ##-----------------------
-## lets do depth first
+## Depth first
 TA_depth <- glmmTMB(total_maxn ~ bait + depth_m + (1|location),
                    data = total_abundance,
                    family = "nbinom2")
@@ -306,7 +315,7 @@ Anova(TA_depth) #depth is not significant
 summary(TA_depth)
 
 ##----------------------
-## mean relief
+## Mean relief
 TA_meanrelief <- glmmTMB(total_maxn ~ bait + mean_relief + (1|location),
                     data = total_abundance,
                     family = "nbinom2")
@@ -314,25 +323,31 @@ AICc(TA_nbinom, TA_meanrelief)
 ##mean relief is ALMOST better - but not quite
 AICc(TA_nbinom) - AICc(TA_meanrelief)
 
-Anova(TA_meanrelief) #but mean relief is significant
+Anova(TA_meanrelief) # Mean relief it is significant
 r2(TA_meanrelief, tolerance = 1e-10) ##R2 are better than TA_nbinom
 ## we will continue checking the other predictors, and now compare with this model too
 
 ##---------------------
+## Sd relief
 TA_sdrelief <-glmmTMB(total_maxn ~ bait + sd_relief + (1|location),
                       data = total_abundance,
                       family = "nbinom2")
+
 Anova(TA_sdrelief)
 AICc(TA_nbinom, TA_sdrelief, TA_meanrelief)
+## sd relief is not close to the -2 AICc units
 
 ##---------------------
+## Scytothalia 
 TA_scyto <- glmmTMB(total_maxn ~ bait + scytothalia + (1|location),
                    data = total_abundance,
                    family = "nbinom2")
 Anova(TA_scyto)
 AICc(TA_nbinom, TA_meanrelief, TA_scyto)
+## scytothalia has a similar AICc value as nbinom
 
 ##---------------------
+## Canopy
 TA_canopy <- glmmTMB(total_maxn ~ bait + canopy + (1|location),
                      data = total_abundance,
                      family = "nbinom2")
@@ -340,30 +355,37 @@ Anova(TA_canopy) ##very significant
 AICc(TA_nbinom, TA_meanrelief, 
      TA_canopy) ##better model
 r2(TA_canopy, tolerance = 1e-10)
+## Marginal R2 represents variance explained by fixed effects.
+## Conditional R2 represents variance explained by both random and fixed effects.
 
 ##---------------------
+## Ecklonia
 TA_ecklonia<- glmmTMB(total_maxn ~ bait + ecklonia + (1|location),
                      data = total_abundance,
                      family = "nbinom2")
-Anova(TA_ecklonia) ##significant
-AICc(TA_canopy, TA_ecklonia)
-##----------------------
+Anova(TA_ecklonia) ## it is significant
+AICc(TA_canopy, TA_ecklonia) # although is good, canopy is still the most parsimonious
 
+
+##----------------------
+## Macroalgae
 TA_macroalgae<- glmmTMB(total_maxn ~ bait + macroalgae + (1|location),
                       data = total_abundance,
                       family = "nbinom2")
-Anova(TA_macroalgae) 
+Anova(TA_macroalgae) # it is significant
+AICc(TA_canopy, TA_ecklonia, TA_macroalgae) # compared to others, macro algae is not good.
+
 
 ##-----------------------------------------------------------------------------
 ## ADDING MORE PREDICTORS
 
-## so meanrelief & canopy are having an effect on total+maxn,
+## so mean relief & canopy are having an effect on total+maxn,
 ## lets add them both and look at output
 
 TA_mr_canopy <- glmmTMB(total_maxn ~ bait + mean_relief + canopy + (1|location),
                         data = total_abundance,
                         family = "nbinom2")
-Anova(TA_mr_canopy) ## now canopy sig
+Anova(TA_mr_canopy) ## now canopy becomes very significant
 AICc(TA_meanrelief, TA_canopy, TA_mr_canopy)
 
 ##swapping mean relief for sd relief
@@ -390,8 +412,7 @@ AICc(TA_canopy, TA_canopy_dep)
 ##------------------------------------------------------------------------------
 ## FULL SUBSETS GLMM - does same as above for you except  we don't check 
 ## significance first. 
-## We find best model based on AICc, our conditional r2(with ranodm effects) and our
-## maringal r2 (without random effects)
+## We find best model based on AICc, our Conditional R2 and our Marginal R2
 
 ###### RUN THIS WHOLE SECTION TOGETHER UNTIL 'END' 
 
@@ -426,8 +447,8 @@ pred_combos <- c(
 )
 
 ##-------------------------------------
-# Function to remove predictor conflicts (canopy with scyto, ecklonia or macro)
-# This is because canopy = scytothalia + ecklonia + other large canopy forming macros
+# Function to remove predictor conflicts (canopy with Scytothalia, Ecklonia or macro)
+# This is because canopy = Scytothalia + Ecklonia + other large canopy forming macros
 # & 'macroalgae' is mixed macro (all the non canopy stuff) and is negatively correlated with canopy - see habitat transformations script
 
 has_predictor_conflict <- function(pred_vector) {
@@ -454,7 +475,7 @@ failure_list <- list()
 failure_id <- 1
 
 ##-------------------------------------
-# Functions to extract conditional R2 with adjusted tolerance
+# Functions to extract Conditional R2 with adjusted tolerance
 # Because location had extremely low variance
 safe_cR2 <- function(model) {
   tryCatch({
@@ -858,4 +879,4 @@ write_csv(failed_models, file.path(outdir, "totalmaxn_failed_models_int.csv"))
 
 ##################### END #####################################################
 
-##bait + canopy + (1|location) still the best model. Yay
+## bait + canopy + (1|location) still the best model !!
