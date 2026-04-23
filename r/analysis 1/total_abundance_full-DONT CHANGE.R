@@ -58,8 +58,7 @@ species_summary <- comp_count %>%
 
 ## Trachinops noarlungae & Parapriacanthus elongatus are seen in huge numbers in a single deployment
 ## this will inflate their importance in the dataset and potentially skew the results
-## we will now remove them
-## Also removing squid & dolphins from the analysis as they are not fish
+
 unique(comp_count$scientific)
 
 comp_count_filtered <- comp_count %>%
