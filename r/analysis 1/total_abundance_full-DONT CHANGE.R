@@ -255,23 +255,24 @@ TA_nbinom <- glmmTMB(total_maxn ~ bait + (1|location),
                      family = "nbinom2")
 
 simres.nbinom <- simulateResiduals(TA_nbinom, n = 1000)
-
 plot(simres.nbinom)
+## probability distribution that best fits the data
+
 testDispersion(simres.nbinom)
 testZeroInflation(simres.nbinom) #no zeros in this dataframe so that makes sense
 plotResiduals(simres.nbinom, 
               TA_nbinom$bait) 
 AICc(TA_nbinom)
-## the Levenes test for homogeneity of variance is significant
-## but thats fine, because we know its not normally distributed anyway
+## the Levene test for homogeneity of variance is significant
+## that's fine because we know its not normally distributed anyway
 ## and we are using a negative binomial GLMM which is what we should do if
-## the levenes test is significant
+## the Levene test is significant
 
 ##------------------------------------------------------------------------------
 ## MODELLING STEP 2 - DOING THE GLMM MANUALLY - "FORWARD STEPWISE APPROACH"
 ##------------------------------------------------------------------------------
 
-## Forward stepwise approach - this is where you start off with your base model
+## Forward step wise approach - this is where you start off with your base model
 ## also called a 'null' model and add predictors one at a time and check for significance
 
 ##lets look at our base model first
@@ -288,7 +289,7 @@ AICc(TA_nbinom)
 performance::r2(TA_nbinom, 
                 tolerance = 1e-10) ## setting this low because of location meaning almost nothing
 
-performance::r2(TA_nbinom) ## see difference - need to keep the tolerance there
+performance::r2(TA_nbinom) ## see the difference? - we need to keep the tolerance there
 
 
 # Remember these are our predictor variables
@@ -301,7 +302,7 @@ pred_vars <- c("depth_m",
                "ecklonia")
 
 ##-----------------------
-## lets do depth first
+## Depth first
 TA_depth <- glmmTMB(total_maxn ~ bait + depth_m + (1|location),
                    data = total_abundance,
                    family = "nbinom2")
@@ -314,7 +315,7 @@ Anova(TA_depth) #depth is not significant
 summary(TA_depth)
 
 ##----------------------
-## mean relief
+## Mean relief
 TA_meanrelief <- glmmTMB(total_maxn ~ bait + mean_relief + (1|location),
                     data = total_abundance,
                     family = "nbinom2")
@@ -322,25 +323,31 @@ AICc(TA_nbinom, TA_meanrelief)
 ##mean relief is ALMOST better - but not quite
 AICc(TA_nbinom) - AICc(TA_meanrelief)
 
-Anova(TA_meanrelief) #but mean relief is significant
+Anova(TA_meanrelief) # Mean relief it is significant
 r2(TA_meanrelief, tolerance = 1e-10) ##R2 are better than TA_nbinom
 ## we will continue checking the other predictors, and now compare with this model too
 
 ##---------------------
+## Sd relief
 TA_sdrelief <-glmmTMB(total_maxn ~ bait + sd_relief + (1|location),
                       data = total_abundance,
                       family = "nbinom2")
+
 Anova(TA_sdrelief)
 AICc(TA_nbinom, TA_sdrelief, TA_meanrelief)
+## sd relief is not close to the -2 AICc units
 
 ##---------------------
+## Scytothalia 
 TA_scyto <- glmmTMB(total_maxn ~ bait + scytothalia + (1|location),
                    data = total_abundance,
                    family = "nbinom2")
 Anova(TA_scyto)
 AICc(TA_nbinom, TA_meanrelief, TA_scyto)
+## scytothalia has a similar AICc value as nbinom
 
 ##---------------------
+## Canopy
 TA_canopy <- glmmTMB(total_maxn ~ bait + canopy + (1|location),
                      data = total_abundance,
                      family = "nbinom2")
@@ -348,7 +355,8 @@ Anova(TA_canopy) ##very significant
 AICc(TA_nbinom, TA_meanrelief, 
      TA_canopy) ##better model
 r2(TA_canopy, tolerance = 1e-10)
-
+## Marginal R2 represents variance explained by fixed effects.
+## Conditional R2 represents variance explained by both random and fixed effects.
 ##---------------------
 TA_ecklonia<- glmmTMB(total_maxn ~ bait + ecklonia + (1|location),
                      data = total_abundance,
