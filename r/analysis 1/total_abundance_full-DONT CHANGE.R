@@ -357,29 +357,35 @@ AICc(TA_nbinom, TA_meanrelief,
 r2(TA_canopy, tolerance = 1e-10)
 ## Marginal R2 represents variance explained by fixed effects.
 ## Conditional R2 represents variance explained by both random and fixed effects.
+
 ##---------------------
+## Ecklonia
 TA_ecklonia<- glmmTMB(total_maxn ~ bait + ecklonia + (1|location),
                      data = total_abundance,
                      family = "nbinom2")
-Anova(TA_ecklonia) ##significant
-AICc(TA_canopy, TA_ecklonia)
-##----------------------
+Anova(TA_ecklonia) ## it is significant
+AICc(TA_canopy, TA_ecklonia) # although is good, canopy is still the most parsimonious
 
+
+##----------------------
+## Macroalgae
 TA_macroalgae<- glmmTMB(total_maxn ~ bait + macroalgae + (1|location),
                       data = total_abundance,
                       family = "nbinom2")
-Anova(TA_macroalgae) 
+Anova(TA_macroalgae) # it is significant
+AICc(TA_canopy, TA_ecklonia, TA_macroalgae) # compared to others, macro algae is not good.
+
 
 ##-----------------------------------------------------------------------------
 ## ADDING MORE PREDICTORS
 
-## so meanrelief & canopy are having an effect on total+maxn,
+## so mean relief & canopy are having an effect on total+maxn,
 ## lets add them both and look at output
 
 TA_mr_canopy <- glmmTMB(total_maxn ~ bait + mean_relief + canopy + (1|location),
                         data = total_abundance,
                         family = "nbinom2")
-Anova(TA_mr_canopy) ## now canopy sig
+Anova(TA_mr_canopy) ## now canopy becomes very significant
 AICc(TA_meanrelief, TA_canopy, TA_mr_canopy)
 
 ##swapping mean relief for sd relief
