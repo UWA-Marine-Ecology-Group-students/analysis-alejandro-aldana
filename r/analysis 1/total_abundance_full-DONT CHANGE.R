@@ -76,7 +76,7 @@ length(unique(comp_count_filtered$scientific)) #89 unique species x 100 drops
 ## CALCULATING TOTAL RELATIVE ABUNDANCE (Total MaxN)
 ##------------------------------------------------------------------------------
 
-## next we need to calculate the total relative abundance per sample again, 
+## next its needed to calculate the total relative abundance per sample again, 
 ## and I'm going to change the name 'count' to total_maxn
 
 total_abundance <- comp_count_filtered %>%
@@ -95,7 +95,7 @@ sum(total_abundance$total_maxn) #5782 fish
 #------------------------------------------------------------------------------
 ## VISUALISING TOTAL ABUNDANCE DATA
 ##------------------------------------------------------------------------------
-## lets visualise the frequency of our total_maxn again
+## lets visualize the frequency of our total_maxn again
 
 ggplot(total_abundance, aes(x = total_maxn)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
