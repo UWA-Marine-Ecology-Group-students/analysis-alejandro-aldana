@@ -406,7 +406,7 @@ AICc(TA_canopy, TA_canopy_dep)
 
 ################################################################################
 ##
-## FULL SUBSETS GLMM FOR TOTAL ABUNDANCE
+## FULL SUBSETS GLMM FOR TOTAL ABUNDANCE - NO INTERACTIONS
 ##
 ################################################################################
 ##------------------------------------------------------------------------------
@@ -571,19 +571,31 @@ base_stats <- tibble(
 model_stats <- map_dfr(pred_combos, fit_model_and_extract)
 
 ##------------------------------------------------------------------------------
-# Combine + rank with adjusted AICc
+### UPDATED version
+## Combine + rank with adjusted AICc - WITH INTERACTIONS
 final_table <- bind_rows(base_stats, model_stats) %>%
   filter(!is.na(AICc)) %>%
   mutate(
-    # Count number of predictors (excluding bait which is in all models)
-    n_predictors = str_count(predictors, "\\+") + 
-      if_else(predictors == "none", 0, 1),
+    # Count number of parameters (excluding bait which is in all models)
+    # Each main effect = 1 parameter, each interaction term = 1 additional parameter
+    # A * B expands to A + B + A:B = 3 parameters, not 1
+    n_predictors = if_else(
+      predictors == "none",
+      0,
+      {
+        # Expand A * B into A + B + A:B before counting
+        # so that each * is properly counted as 3 parameters
+        expanded <- gsub("(\\w+) \\* (\\w+)", "\\1 + \\2 + \\1:\\2", predictors)
+        lengths(strsplit(expanded, " \\+ "))
+      }
+    ),
     # Add penalty of 2 AICc units per additional predictor beyond base model
-    # adjAICc = AICc + 2 * (n_predictors - min(n_predictors)),
-    adjAICc = AICc + 2 * (n_predictors),
+    adjAICc = AICc + 2 * (n_predictors - min(n_predictors)),
     deltaAICc = AICc - min(AICc),
-    delta_adjAICc = adjAICc - min(adjAICc)) %>%
-  arrange(adjAICc)  # Sort by adjusted AICc
+    delta_adjAICc = adjAICc - min(adjAICc)
+  ) %>%
+  arrange(adjAICc)
+
 
 # Export CSV
 write_csv(final_table, file.path(outdir, "totalmaxn_best_models.csv"))
@@ -692,8 +704,10 @@ all_pairs <- combn(pred_vars, 2, simplify = FALSE)
 excluded_interactions <- list(
   c("canopy", "ecklonia"),
   c("canopy", "scytothalia"),
-  c("canopy", "macroalgae")
-)
+  c("canopy", "macroalgae"),
+  c("ecklonia", "macroalgae"),
+  c("scytothalia", "macroalgae"),
+  c("scytothalia", "ecklonia"))
 
 # Filter out excluded pairs to get allowed interaction pairs
 interaction_pairs <- Filter(function(pair) {
@@ -703,44 +717,28 @@ interaction_pairs <- Filter(function(pair) {
 }, all_pairs)
 
 #---------------------------------------------------------
-# Build predictor combinations: 1, 2, or 3 predictors
-base_combos <- c(
-  combn(pred_vars, 1, simplify = FALSE),
-  combn(pred_vars, 2, simplify = FALSE),
-  combn(pred_vars, 3, simplify = FALSE)
-)
+# Build predictor combinations: up to 2 main effects OR 1 interaction (no additional main effects)
+#
+# Single main effects
+single_combos <- combn(pred_vars, 1, simplify = FALSE)
 
-# For each base combo, also generate versions with one interaction term added
-# Only add an interaction if BOTH constituent variables are already in the combo
-# Use * notation and remove the separate main effects to avoid duplication
-combos_with_interactions <- lapply(base_combos, function(combo) {
-  valid_interactions <- Filter(function(pair) {
-    all(pair %in% combo)
-  }, interaction_pairs)
-  
-  if (length(valid_interactions) == 0) {
-    return(list(combo))  # No valid interactions, return as-is
-  }
-  
-  # For each valid interaction, replace the two main effects with a single * term
-  interaction_versions <- lapply(valid_interactions, function(pair) {
-    int_term <- paste(pair[1], pair[2], sep = " * ")
-    remaining <- setdiff(combo, pair)  # Remove the two main effects
-    c(remaining, int_term)
-  })
-  
-  c(list(combo), interaction_versions)
-})
+# Two main effects (no interaction)
+double_combos <- combn(pred_vars, 2, simplify = FALSE)
 
-# Flatten the nested list
-pred_combos <- unique(unlist(combos_with_interactions, recursive = FALSE))
+# Interaction only (both main effects implicit in * notation, no additional predictors)
+interaction_combos <- lapply(interaction_pairs, function(pair) {
+  list(paste(pair[1], pair[2], sep = " * "))
+}) %>%
+  unlist(recursive = FALSE)
+
+# Combine all
+pred_combos <- c(single_combos, double_combos, interaction_combos)
 
 #---------------------------------------------------------
 # Filter out invalid combinations
 
-# Function to remove predictor conflicts (canopy with scyto, ecklonia or macro)
 has_predictor_conflict <- function(pred_vector) {
-  if ("canopy" %in% pred_vector && 
+  if ("canopy" %in% pred_vector &&
       ("ecklonia" %in% pred_vector || "scytothalia" %in% pred_vector)) {
     return(TRUE)
   }
@@ -750,8 +748,8 @@ has_predictor_conflict <- function(pred_vector) {
   return(FALSE)
 }
 
-# Remove conflicting combinations
 pred_combos <- Filter(function(x) !has_predictor_conflict(x), pred_combos)
+
 
 ##UPDATED SECTION ENDS HERE ---------------------------------------------####
 ##-------------------------------------
@@ -853,17 +851,24 @@ base_stats <- tibble(
 # Fit all 1–3 predictor models
 model_stats <- map_dfr(pred_combos, fit_model_and_extract)
 
-##---------------------------------------------------------
+# #---------------------------------------------------------
+### UPDATED version
 ## Combine + rank with adjusted AICc - WITH INTERACTIONS
 final_table <- bind_rows(base_stats, model_stats) %>%
   filter(!is.na(AICc)) %>%
   mutate(
     # Count number of parameters (excluding bait which is in all models)
-    # Each main effect = 1 parameter, each interaction term = 1 parameter
+    # Each main effect = 1 parameter, each interaction term = 1 additional parameter
+    # A * B expands to A + B + A:B = 3 parameters, not 1
     n_predictors = if_else(
       predictors == "none",
       0,
-      lengths(strsplit(predictors, " \\+ "))
+      {
+        # Expand A * B into A + B + A:B before counting
+        # so that each * is properly counted as 3 parameters
+        expanded <- gsub("(\\w+) \\* (\\w+)", "\\1 + \\2 + \\1:\\2", predictors)
+        lengths(strsplit(expanded, " \\+ "))
+      }
     ),
     # Add penalty of 2 AICc units per additional predictor beyond base model
     adjAICc = AICc + 2 * (n_predictors - min(n_predictors)),
@@ -876,12 +881,12 @@ final_table <- bind_rows(base_stats, model_stats) %>%
 write_csv(final_table, file.path(outdir, "totalmaxn_best_models_int.csv"))
 
 # Display top models
-print(final_table %>% 
-        select(model, n_predictors, AICc, adjAICc, delta_adjAICc, mR2, cR2))
+print(final_table)
 
 #---------------------------------------------------------
 # Convert failures to a table
 failed_models <- bind_rows(failure_list)
+print(failed_models)
 
 # Save to CSV
 write_csv(failed_models, file.path(outdir, "totalmaxn_failed_models_int.csv"))
