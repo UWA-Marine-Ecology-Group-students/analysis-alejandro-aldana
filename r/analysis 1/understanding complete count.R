@@ -10,7 +10,7 @@ library(ggplot2)
 library(CheckEM)
 
 
-## Read in habitat dataframe
+## Read in habitat data frame
 
 habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
   dplyr::rename(sample = opcode)%>%
@@ -26,7 +26,7 @@ comp_count <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>%
   dplyr::filter(successful_count == "Yes")
 
 
-## making a dataframe that summarises the number of fish of each species seen across all drops
+## making a data frame that summarize the number of fish of each species seen across all drops
 species_summary <- comp_count %>%
   group_by(scientific) %>%
   summarise(total_count = sum(count, na.rm = TRUE),
@@ -43,11 +43,11 @@ species_summary <- comp_count %>%
   arrange(desc(n_drops))
 
 ## saving species_summary as a .csv 
-# outdir <- "./output/"
-# write_csv(species_summary, file.path(outdir, "species_summary.csv"))
+outdir <- "./output/"
+write_csv(species_summary, file.path(outdir, "species_summary.csv"))
 
 #-------------------------------------------------------------------------------
-## exporting histograms for all of the species
+## Exporting histograms for all of the species
 ## Note - 2 didnt work properly. 
 
 plot_path <- "./output/species histograms"  
@@ -77,7 +77,7 @@ elongatus <- comp_count %>%
 noarlungae <- comp_count %>%
   filter(scientific == "Plesiopidae Trachinops noarlungae", count > 0)
 
-## Hannah :: I think we should remove these two species from dataset
+## We should remove these two species from data set
 
 #-----------------------------------------------------------------------------
 ## species to rename
