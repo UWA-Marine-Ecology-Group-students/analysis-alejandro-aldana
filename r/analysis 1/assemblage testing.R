@@ -110,14 +110,14 @@ ggplot(pcoa_scores, aes(x = PCoA1, y = PCoA2, colour = location, shape = bait_ty
 perm_main <- adonis2(species_matrix ~ location + bait_type,
                      data    = metadata,
                      method  = "bray",
-                     permutations = 999)
+                     permutations = 9999)
 print(perm_main)
 
 # Interaction model - tests if bait effect differs across locations
 perm_interact <- adonis2(species_matrix ~ location * bait_type,
                          data    = metadata,
                          method  = "bray",
-                         permutations = 999)
+                         permutations = 9999)
 print(perm_interact)
 
 # NOTE: Order matters in adonis2 - the first term listed is tested first.
@@ -125,7 +125,7 @@ print(perm_interact)
 perm_alt <- adonis2(species_matrix ~ bait_type + location,
                     data    = metadata,
                     method  = "bray",
-                    permutations = 999)
+                    permutations = 9999)
 print(perm_alt)
 
 
@@ -137,7 +137,7 @@ print(perm_alt)
 
 # --- By location ---
 disp_location <- betadisper(dist_bc, metadata$location)
-permutest(disp_location, permutations = 999)
+permutest(disp_location, permutations = 9999)
 
 # Post-hoc pairwise if significant
 TukeyHSD(disp_location)
@@ -149,7 +149,7 @@ boxplot(disp_location, main = "Distance to Centroid by Location",
 
 # --- By bait type ---
 disp_bait <- betadisper(dist_bc, metadata$bait_type)
-permutest(disp_bait, permutations = 999)
+permutest(disp_bait, permutations = 9999)
 plot(disp_bait, main = "Dispersion by Bait Type")
 boxplot(disp_bait, main = "Distance to Centroid by Bait Type",
         ylab = "Distance to centroid")
@@ -169,7 +169,7 @@ for (p in pairs) {
   res <- adonis2(species_matrix[idx, ] ~ location,
                  data         = metadata[idx, ],
                  method       = "bray",
-                 permutations = 999)
+                 permutations = 9999)
   pair_results <- rbind(pair_results, data.frame(
     Comparison = paste(p, collapse = " vs "),
     F_value    = res$F[1],
@@ -191,7 +191,7 @@ print(pair_results)
 indval <- multipatt(species_matrix,
                     cluster      = metadata$location,
                     func         = "r.g",          # correlation-based
-                    control      = how(nperm = 999))
+                    control      = how(nperm = 9999))
 
 summary(indval, indvalcomp = TRUE, alpha = 0.05)
 
@@ -199,7 +199,7 @@ summary(indval, indvalcomp = TRUE, alpha = 0.05)
 indval_bait <- multipatt(species_matrix,
                          cluster  = metadata$bait_type,
                          func     = "r.g",
-                         control  = how(nperm = 999))
+                         control  = how(nperm = 9999))
 
 summary(indval_bait, indvalcomp = TRUE, alpha = 0.05)
 
@@ -209,5 +209,5 @@ summary(indval_bait, indvalcomp = TRUE, alpha = 0.05)
 # Which species drive differences between locations?
 # ============================================================
 
-simp <- simper(species_matrix, group = metadata$location, permutations = 999)
+simp <- simper(species_matrix, group = metadata$location, permutations = 9999)
 summary(simp, ordered = TRUE)   # top contributing species per pairwise comparison
