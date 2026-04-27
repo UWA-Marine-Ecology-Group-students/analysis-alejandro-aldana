@@ -64,7 +64,7 @@ comp_count_richness <- comp_count %>%
   ))
 
 ##------------------------------------------------------------------------------
-## STEP 2 - RENAME SPECIES & PREPARE DATAFRAME FOR RICHNESS
+## STEP 2 - RENAME SPECIES & PREPARE DATAFRAME FOR SPECIES RICHNESS
 ##------------------------------------------------------------------------------
 
 ## Samples where both Pictilabrus species co-occur
@@ -112,7 +112,7 @@ comp_count_richness <- comp_count %>%
 comp_count_richness %>%
   filter(grepl("Pictilabrus", scientific)) %>%
   distinct(sample, scientific) %>%
-  print(n = 50)
+  print(n = 300)
 
 ## Check Pseudocaranx - should all be spp now
 comp_count_richness %>%
