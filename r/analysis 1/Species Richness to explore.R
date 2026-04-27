@@ -54,6 +54,13 @@ pictilabrus_check <- comp_count %>%
   filter(has_laticlavius & has_viridis)   # only samples where BOTH are present
 
 print(pictilabrus_check)
+
+comp_count %>%
+  filter(scientific %in% c("Labridae Pictilabrus laticlavius", 
+                           "Labridae Pictilabrus viridis")) %>%
+  select(sample, scientific, count) %>%
+  print(n = 200)
+
 ## Check this output before proceeding - in this case there were no conflicts
 ## where both species to be collapsed to Pictilabrus spp
 
@@ -63,12 +70,20 @@ comp_count_richness <- comp_count %>%
     TRUE ~ scientific
   ))
 
+  # list of samples that Pictilabrus spp appears.
+comp_count %>%
+  filter(scientific == "Labridae Pictilabrus spp" & count > 0) %>%
+  distinct(sample) %>%
+  arrange(sample) %>%
+  print()
+
 ##------------------------------------------------------------------------------
 ## STEP 2 - RENAME SPECIES & PREPARE DATAFRAME FOR SPECIES RICHNESS
 ##------------------------------------------------------------------------------
 
 ## Samples where both Pictilabrus species co-occur
 mixed_pictilabrus_samples <- pictilabrus_check$sample
+print(mixed_pictilabrus_samples)
 
 comp_count_richness <- comp_count %>%
   
@@ -97,11 +112,16 @@ comp_count_richness <- comp_count %>%
     TRUE ~ scientific
   )) %>%
   
-  ## --- After renaming, re-aggregate counts per sample x species ---
-  ## This is necessary because e.g. two Pseudocaranx species in same sample
-  ## are now the same row and need to be summed
+## After renaming, re-aggregate counts per sample x species ---
+## This is necessary because e.g. two Pseudocaranx species in same sample
+## are now the same row and need to be summed
   group_by(across(-count)) %>%
   summarise(count = sum(count, na.rm = TRUE), .groups = "drop")
+
+# checking which Pictilabrus species are in the data
+comp_count %>%
+  filter(grepl("Pictilabrus", scientific)) %>%
+  distinct(scientific)
 
 ##------------------------------------------------------------------------------
 ## STEP 3 - QUICK SANITY CHECKS
