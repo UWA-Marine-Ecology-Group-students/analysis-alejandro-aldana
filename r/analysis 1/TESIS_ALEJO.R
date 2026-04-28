@@ -9,9 +9,9 @@ library(tidyverse)
 #Aca simplemente estamos limpiadno los datos
 
 # 1. Load datasets
-metadata <- readRDS(".data/tidy/Baitcomp_All_Metadata.rds")
-habitat  <- readRDS(".data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")
-fish     <- readRDS("Baitcomp_All_complete-count.rds")
+metadata <- readRDS("./data/tidy/Baitcomp_All_Metadata.rds")
+habitat  <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")
+fish     <- readRDS("./data/staging/Baitcomp_All_complete-count.rds")
 
 # 2. Clean habitat predictor names
 habitat_clean <- habitat %>%
@@ -129,7 +129,7 @@ bruv_data
 
 ###############################################################################
 #Aca estamos revisando que la limpieza haya quedado bien, con el n de bruvs,
-# location y baits :)
+# location y bait
 
 nrow(bruv_data)
 
@@ -216,7 +216,7 @@ nrow(bruv_data_nmds)
 
 all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
 
-#Y corremos el PERMANOVA jejeje :)
+#Y corremos el PERMANOVA
 
 library(vegan)
 
