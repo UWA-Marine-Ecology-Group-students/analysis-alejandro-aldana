@@ -302,7 +302,7 @@ pred_vars <- c("depth_m",
                "ecklonia")
 
 ##-----------------------
-## Depth first
+## Depth 
 TA_depth <- glmmTMB(total_maxn ~ bait + depth_m + (1|location),
                    data = total_abundance,
                    family = "nbinom2")
