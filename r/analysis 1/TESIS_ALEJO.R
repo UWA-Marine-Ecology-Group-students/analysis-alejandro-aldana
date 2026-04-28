@@ -94,7 +94,7 @@ data_clean %>%
 #         2. Calculamos abundancia y riqueza por BRUV 
 #.          (que es la unidad de estudio)
 #.        3. Creamos el data frame que nos va a servir para TODO el analisis 
-#.          (bruv_data) aca puedes encontrar los videos, location, predicted variables
+#.          (bruv_data) aca puedes encontrar las muestras (sample), location, predicted variables
 #.         limpias, la riqueza y la abundancia.
 
 # 1. Eliminar BRUVS sin datos de hábitat + quitar sd_relief
