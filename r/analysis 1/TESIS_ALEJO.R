@@ -1,6 +1,6 @@
 #Tesis Alejandro
 
-
+rm(list=ls())
 #Con este codigo vamos a ver si hay diferencias el en fish assamblages entre 
 #locaciones y que variables predictable afectan la abundancia y riqueza.
 
@@ -123,12 +123,13 @@ bruv_data <- data_filtered %>%
          mean_relief) %>%
   distinct() %>%
   left_join(abundance_bruv, by = "sample") %>%
-  left_join(richness_bruv, by = "sample")
+  left_join(richness_bruv, by = "sample") %>%
+  print(n=108)
 
 bruv_data
 
 ###############################################################################
-#Aca estamos revisando que la limpieza haya quedado bien, con el n de bruvs,
+#Aca estamos revisando que la limpieza haya quedado bien, con el numero de samples,
 # location y bait
 
 nrow(bruv_data)
@@ -146,6 +147,8 @@ bruv_data %>%
 #EMPECEMOS CON TODO EL ANALISIS YA CON LOS DATOS LIMPIOS#
 
 #Crear matriz de comunidad: Necesitamos pasar de formato largo a ancho
+data_nmds <- data_filtered %>%
+  drop_na(species, count)
 
 community_matrix <- data_nmds %>%
   select(sample, species, count) %>%
@@ -160,17 +163,14 @@ community_matrix_mat <- community_matrix %>%
   column_to_rownames("sample")
 
 community_matrix_sqrt <- sqrt(community_matrix_mat) 
-#Aca hacemos una correcion sqrt para que el NMDS sea mas confiable 
+#Aca hacemos una correcion sqrt para que el nMDS sea mas confiable 
 #esto reduce el peso de especies dominantes
 
-#ahora tienes: filas = BRUVS, columnas = especies, valores = abundancia.
+#ahora tienes: filas = sample, columnas = especies, valores = abundancia.
 
 #=================############## NMDS ###############====================
 
 library(vegan)
-
-data_nmds <- data_filtered %>%
-  drop_na(species, count)
 
 nmds <- metaMDS(
   community_matrix_mat,
@@ -187,7 +187,7 @@ nmds_data <- nmds_points %>%
   left_join(bruv_data, by = "sample")
 
 
-# Ahora ploteamos estooo
+# Ahora lets plot
 
 library(ggplot2)
 
@@ -213,6 +213,7 @@ bruv_data_nmds <- bruv_data %>%
 # 3. Revisar que coincidan
 nrow(community_matrix_mat)
 nrow(bruv_data_nmds)
+# both show same amount which is good
 
 all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
 
@@ -224,14 +225,14 @@ adonis_result <- adonis2(
   community_matrix_mat ~ location,
   data = bruv_data_nmds,
   method = "bray",
-  permutations = 999
+  permutations = 9999
 )
 
 adonis_result
 
 #Fish assemblage structure differed significantly among locations 
 #(PERMANOVA, F₅,₉₄ = 1.47, p = 0.009), although location explained 
-#a relatively small proportion of the total variation (R² = 0.07). T
+#a relatively small proportion of the total variation (R² = 0.07).
 #this indicates that while spatial differences exist, 
 #fish communities are broadly similar across sites.
 
@@ -253,7 +254,7 @@ anova(dispersion)
 #================== ###### GLMM  ######================================
 
 
-#Con los modelos vamos a responder Responder:
+#Con los modelos vamos a responder:
 #¿Qué variables de hábitat explican la abundancia y riqueza de peces?
 
 
@@ -288,7 +289,7 @@ install.packages("DHARMa")
 library(DHARMa)
 
 # Diagnóstico abundancia
-res_abund <- simulateResiduals(model_abund_habitat)
+res_abund <- simulateResiduals(model_abund_final)
 plot(res_abund)
 
 # Diagnóstico riqueza
