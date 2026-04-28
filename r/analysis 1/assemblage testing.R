@@ -13,9 +13,26 @@ library(ggrepel)
 # ============================================================
 # DATA SETUP
 # Assumes:
-#   'species_matrix' = sites x species abundance/presence matrix
-#   'metadata'       = data frame with columns: location, bait_type
+  # 'species_matrix' = sites x species abundance/presence matrix
+  # 'metadata'       = data frame with columns: location, bait_type
 # ============================================================
+## Read in habitat dataframe
+
+habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
+  dplyr::rename(sample = opcode)%>%
+  dplyr::mutate(sd.relief = replace_na(sd.relief, 0))%>% ## drp[046] has sd relief = NA so changing to 0 
+  clean_names()%>%
+  glimpse()
+
+# Read in complete count data
+comp_count <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>%
+  clean_names() %>%
+  dplyr::select(-c( #removing unneccessary columns
+    site, length_checked, forwards_habitat_image_saved, 
+    observer_habitat_forward, maxn_complete_date, time_of_day, 
+    time_sec ))%>% 
+  left_join(habitat, by = "sample") %>%
+  dplyr::filter(successful_count == "Yes")
 
 # Quick check - rows must match
 stopifnot(nrow(species_matrix) == nrow(metadata))
