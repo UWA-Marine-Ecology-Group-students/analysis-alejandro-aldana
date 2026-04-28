@@ -260,30 +260,48 @@ anova(dispersion)
 
 library(glmmTMB)
 
-# Modelo de abundancia solo con hábitat
+# Modelo de abundancia, loaction as a fixed effect
+# does abundance varies between specific locations?
+
 model_abund_final <- glmmTMB(
   total_abundance ~ location + 
-    macroalgae + scytothalia + canopy + ecklonia + mean_relief + depth,
+    macroalgae + scytothalia + canopy + ecklonia + mean_relief + depth + bait,
   family = nbinom2,
   data = bruv_data
 )
 
 summary(model_abund_final)
-#Fish abundance was significantly positively associated with depth (p < 0.001),
-#while habitat variables including macroalgae cover, canopy, 
-#and Ecklonia were not significant predictors.
 
-# Modelo de riqueza solo con hábitat
-model_rich_habitat <- glmmTMB(
-  richness ~ macroalgae + scytothalia + canopy + ecklonia + mean_relief + depth,
+# Modelo de abundancia, location as random effect
+# Does habitat and bait affect the abundance of spatial variance by location
+# each location is allowed to have different average abundance but without estimate
+# each individual comparison for each location
+model_abund_mixed <- glmmTMB(total_abundance ~
+    macroalgae + scytothalia + canopy + ecklonia + mean_relief + depth + bait +
+    (1|location),
   family = nbinom2,
   data = bruv_data
 )
 
-summary(model_rich_habitat)
+summary(model_abund_mixed)
 
-#Fish abundance is driven by environmental gradients (depth), 
-#whereas species richness is associated with habitat complexity (relief).
+# Modelo de riqueza
+model_rich_mixed <- glmmTMB(richness ~
+    macroalgae + scytothalia + canopy + ecklonia + mean_relief + depth + bait +
+    (1|location),
+  family = nbinom2,
+  data = bruv_data
+)
+
+summary(model_rich_mixed)
+#Fish abundance was significantly positively associated with depth (p < 0.001),
+#while habitat variables including macroalgae cover, canopy, 
+#and Ecklonia were not significant predictors when Location as random
+
+#Fish richness was signifcantly influenced by bait type (p=0.009), with a marginal positive
+#effect of habitat complexity (mean relieve, p=0.06)
+#Variation among locations contributed little to richness and abundance in mixed models,
+#despite significant differences in overall assemblage structure
 
 install.packages("DHARMa")
 library(DHARMa)
@@ -296,15 +314,13 @@ plot(res_abund)
 res_rich <- simulateResiduals(model_rich_habitat)
 plot(res_rich)
 
-
-
 ####### 
 
 ggplot(bruv_data, aes(x = location, y = total_abundance, fill = location)) +
 geom_boxplot(alpha = 0.7) +
   theme_classic() +
   labs(
-    title = "Fish abundance across locations",
+    title = "",
     x = "Location",
     y = "Total abundance"
   ) +
@@ -315,7 +331,7 @@ ggplot(bruv_data, aes(x = location, y = richness, fill = location)) +
   geom_boxplot(alpha = 0.7) +
   theme_classic() +
   labs(
-    title = "Fish species richness across locations",
+    title = "",
     x = "Location",
     y = "Species richness"
   ) +
@@ -327,18 +343,18 @@ ggplot(bruv_data, aes(x = depth, y = total_abundance)) +
   geom_smooth(method = "glm", method.args = list(family = "poisson"), color = "blue") +
   theme_classic() +
   labs(
-    title = "Relationship between depth and fish abundance",
+    title = "",
     x = "Depth (m)",
     y = "Total abundance"
   )
 
 
-ggplot(bruv_data, aes(x = mean_relief, y = richness)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "glm", method.args = list(family = "poisson"), color = "darkgreen") +
+ggplot(bruv_data, aes(x = bait, y = richness, fill = bait)) +
+  geom_boxplot(alpha = 0.7) +
   theme_classic() +
   labs(
-    title = "Relationship between habitat complexity and species richness",
-    x = "Mean relief",
+    title = "Effect of bait on fish species richness",
+    x = "Bait type",
     y = "Species richness"
-  )
+  ) +
+  theme(legend.position = "none")
