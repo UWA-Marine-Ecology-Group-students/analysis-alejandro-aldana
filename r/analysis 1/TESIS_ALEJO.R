@@ -6,11 +6,10 @@ rm(list=ls())
 
 library(tidyverse)
 ###########################################################################
-#Aca simplemente estamos limpiadno los datos
+#Aca simplemente estamos limpiando los datos
 
 # Load datasets
-metadata <- readRDS("./data/tidy/Baitcomp_All_Metadata.rds") ##you don't need this
-## the metadata has already been combined with your complete-count data. Although it is need for further analysis
+metadata <- readRDS("./data/tidy/Baitcomp_All_Metadata.rds")
 habitat  <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")
 fish     <- readRDS("./data/staging/Baitcomp_All_complete-count.rds")
 
