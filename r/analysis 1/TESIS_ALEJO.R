@@ -8,13 +8,13 @@ library(tidyverse)
 ###########################################################################
 #Aca simplemente estamos limpiadno los datos
 
-# 1. Load datasets
+# Load datasets
 metadata <- readRDS("./data/tidy/Baitcomp_All_Metadata.rds") ##you don't need this
-## the metadata has already been combined with your complete-count data
+## the metadata has already been combined with your complete-count data. Although it is need for further analysis
 habitat  <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")
 fish     <- readRDS("./data/staging/Baitcomp_All_complete-count.rds")
 
-# 2. Clean habitat predictor names
+# Clean habitat predictor names
 habitat_clean <- habitat %>%
   rename(
     macroalgae   = Macroalgae,
@@ -35,17 +35,13 @@ metadata <- metadata %>%
 habitat_clean <- habitat_clean %>%
   mutate(opcode = as.character(opcode))
 
-# 4. Join fish + metadata + habitat
+# Join fish + metadata + habitat
 data_full <- fish %>%
   left_join(metadata, by = "sample", suffix = c("", "_meta")) %>%## don't need
   left_join(habitat_clean, by = c("sample" = "opcode"))
-## you should add a filter here to include only the samples/opcodes where successful_count == "Yes"
-## dplyr::filter(successful_count == "Yes")
-## below you start removing samples where there are na's. You should avoid this as that could
-## happen because of data formatting or because of the raw habitat data
 
-# 5. Create final clean dataset
-# We KEEP all predictor variables:
+# Create final clean dataset
+# We keep all predictor variables:
 # mean_relief, sd_relief, scytothalia, canopy, macroalgae, depth, ecklonia
 
 data_clean <- data_full %>%
@@ -53,6 +49,7 @@ data_clean <- data_full %>%
     sample = sample,
     species = Scientific,
     count = count,
+    successful_count = successful_count,
     location = location,
     bait = bait,
     depth = depth_m,
@@ -62,13 +59,17 @@ data_clean <- data_full %>%
     ecklonia = ecklonia,
     mean_relief = mean_relief,
     sd_relief = sd_relief
-  )
+  ) %>%
+  filter(successful_count == "Yes")
+## Drop number 046 was facing out into open water. it is completely justifiable 
+## to change that NA to 0 for that reason. 
+data_clean <- data_clean %>%
+  mutate(sd_relief = if_else(sample == "046" & is.na(sd_relief), 0, sd_relief))
 
-# 6. Check missing values
-colSums(is.na(data_clean)) ##you have NAs in your samples because you haven't filtered
-##to the completed drops
+# Check missing values
+colSums(is.na(data_clean)) 
 
-# 7. Check dimensions and number of samples/species
+# Check dimensions and number of samples/species
 dim(data_clean)
 
 data_clean %>%
@@ -96,63 +97,66 @@ data_clean %>%
 #################################################################################
 #Aca creamos primero un data frame con los datos que realmente nos importa:
 
-#para eso 1. Quitamos los NA y el sd_relief (tiene 99 NA) 
-#         2. Calculamos abundancia y riqueza por BRUV 
+#         1. Calculamos abundancia y riqueza por BRUV 
 #.          (que es la unidad de estudio)
-#.        3. Creamos el data frame que nos va a servir para TODO el analisis 
+#.        2. Creamos el data frame que nos va a servir para TODO el analisis 
 #.          (bruv_data) aca puedes encontrar las muestras (sample), location, predicted variables
 #.         limpias, la riqueza y la abundancia.
 
-# 1. Eliminar BRUVS sin datos de hábitat + quitar sd_relief
+# Eliminar BRUVS sin datos de hábitat
 ## there should only be one drop in the 100 successful_count = Yes that has an NA in sd relief
-## that drop is number 046 because it was facing out into open water.
-## it is completely justifiable to change that NA to 0 for that reason. 
+## that 
 data_filtered <- data_clean %>%
-  drop_na(macroalgae, scytothalia, canopy, ecklonia, mean_relief) %>%
-  select(-sd_relief) ## do not remove this variable. It is meaningful and not necessary to remove
-## see the above comment on 046 and changing the NA to 0
+  drop_na(macroalgae, scytothalia, canopy, ecklonia, mean_relief, sd_relief) ## data is verified with no NA's and including sd_relief
 
-# 2. Abundancia total por BRUV
-## before you sum by sample you need to remove the species that are overly abundant
-## like we did in your total_abundance_full script. The P.elongatus & T. noarlungae
-## you should also remove the dolphins & any other non fish/shark/ray species (like squid)
+# Abundancia total por BRUV
+## Some species were removed
 abundance_bruv <- data_filtered %>%
+  filter(!species == "Plesiopidae Trachinops noarlungae")%>%
+  filter(!species == "Pempherididae Parapriacanthus elongatus")%>%
+  filter(!species == "Loliginidae Sepioteuthis australis")%>%
+  filter(!species == "Delphinidae Delphinus delphis") %>%
   group_by(sample) %>%
   summarise(
     total_abundance = sum(count, na.rm = TRUE)
   )
-## you have too many samples in this. There were only 100 that were able to be analysed - 
-## see above where to remove with the filter for successful_count == Yes
 
 # 3. Riqueza por BRUV
-## you can keep P.elongatus & T.noarlungae in this one - but make sure to remove dolphins
-## and squid and any unknowns
+## Dolphin and squid species are removed
+
 richness_bruv <- data_filtered %>%
+  filter(!species == "Plesiopidae Trachinops noarlungae")%>%
+  filter(!species == "Pempherididae Parapriacanthus elongatus")%>%
+  filter(!species == "Loliginidae Sepioteuthis australis")%>%
+  filter(!species == "Delphinidae Delphinus delphis") %>%
   group_by(sample) %>%
   summarise(
     richness = n_distinct(species[count > 0])
   )
-## too many samples - should be 100 - see above
 
-# 4. Dataset final para modelos
+# Dataset final para modelos
 bruv_data <- data_filtered %>%
   select(sample, location, bait, depth,
          macroalgae, scytothalia, canopy, ecklonia,
-         mean_relief) %>%
+         mean_relief, sd_relief) %>%
   distinct() %>%
   left_join(abundance_bruv, by = "sample") %>%
-  left_join(richness_bruv, by = "sample") %>%
-  print(n=108)
+  left_join(richness_bruv, by = "sample")
 
 bruv_data
-## depth needs to be numeric not integer - integer rounds to whole numbers and is not completely correct
-## location and bait should be factors
+## depth needs to be numeric not integer. Location y bait ahora son factores
+bruv_data <- bruv_data %>%
+  mutate(depth = as.numeric(depth),
+         location = as.factor(location),
+         bait = as.factor(bait))
+## Comprobamos
+str(bruv_data)
 
 ###############################################################################
 #Aca estamos revisando que la limpieza haya quedado bien, con el numero de samples,
 # location y bait
 
-nrow(bruv_data) ## too many samples. should be 100
+nrow(bruv_data) ## It is 100, as it should be
 
 bruv_data %>%
   summarise(
@@ -169,13 +173,7 @@ bruv_data %>%
 #Crear matriz de comunidad: Necesitamos pasar de formato largo a ancho
 data_nmds <- data_filtered %>%
   drop_na(species, count) 
-## 1. again - don't filter by na's. You may be filtering out data
-## that has been formatted incorrectly and you should investigate why there are NAs there
-## filtering at the beginning by successful_count will ensure the rest is correct
-## 2. we need to check whether you need to filter out those P.elongatus & T.noarlungae from here
-## as well 
 
-## all analyses with those 2 extra samples that shouldnt be included are not correct
 community_matrix <- data_nmds %>%
   select(sample, species, count) %>%
   pivot_wider(
@@ -184,13 +182,14 @@ community_matrix <- data_nmds %>%
     values_fill = 0
   )
 
-
+## Aqui tomamos la columna Sample y la sacamos de los datos
 community_matrix_mat <- community_matrix %>%
   column_to_rownames("sample")
 
-community_matrix_sqrt <- sqrt(community_matrix_mat) 
 #Aca hacemos una correcion sqrt para que el nMDS sea mas confiable 
 #esto reduce el peso de especies dominantes
+community_matrix_sqrt <- sqrt(community_matrix_mat) 
+
 
 #ahora tienes: filas = sample, columnas = especies, valores = abundancia.
 
@@ -216,6 +215,11 @@ nmds2 <- metaMDS(
 
 nmds2$stress #still 0.21
 
+# k = 3 is very difficult to plot because data is overlaping but
+# permanova shows it is significantly different. That is why the stress of the 
+# nMDS is in the limit but we care more about the statistical test rather than
+# a visualization
+
 nmds3 <- metaMDS(
   community_matrix_mat,
   distance = "bray",
@@ -223,9 +227,7 @@ nmds3 <- metaMDS(
   trymax = 100 
 )
 
-nmds3$stress #0.16 is good
-
-##need to check if there are species occurring in < 2 samples
+nmds3$stress #0.16 is better
 
 # checking if any species occurring in fewer than 2 samples
 which(colSums(community_matrix_mat > 0) <= 2)
@@ -276,24 +278,28 @@ ggplot(nmds3_data, aes(x = MDS1, y = MDS3, color = location)) +
 #suggesting broadly similar fish assemblages across sites,
 #although some variability was observed.
 
+# This was known before plotting with 3 dimensions. Either way of visualization type
+# is valid and tells us the same information, that data is overlapping
+
 #=================#######  PERMANOVA    #########===========================
 
 nrow(community_matrix_mat)
 nrow(bruv_data)
+# Both coincide
 
-# 2. Crear metadata SOLO para los BRUVS que están en la matriz
+# Crear metadata SOLO para los BRUVS que están en la matriz
 bruv_data_nmds <- bruv_data %>%
   filter(sample %in% rownames(community_matrix_mat)) %>%
   arrange(match(sample, rownames(community_matrix_mat)))
 
-# 3. Revisar que coincidan
+# Revisar que coincidan
 nrow(community_matrix_mat)
 nrow(bruv_data_nmds)
 # both show same amount which is good
 
 all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
 
-#Y corremos el PERMANOVA
+# Corremos el PERMANOVA
 
 library(vegan)
 
@@ -328,9 +334,7 @@ anova(dispersion)
 
 
 #================== ###### GLMM  ######================================
-## SUPER IMPORTANTE
-## you need to have location as a factor and bait as a factor
-## depth needs to be numeric not an integer
+## bait and locations are factors. Depth is already numeric
 
 #Con los modelos vamos a responder:
 #¿Qué variables de hábitat explican la abundancia y riqueza de peces?
@@ -338,102 +342,118 @@ anova(dispersion)
 
 library(glmmTMB)
 
+
+pred_vars <- c("depth_m",
+               "mean_relief", 
+               "sd_relief",
+               "scytothalia",
+               "canopy", 
+               "macroalgae", 
+               "ecklonia")
+
 # Modelo de abundancia, loaction as a fixed effect
 # does abundance varies between specific locations?
 ## now that we know that community assemblage changes across the locations we 
-##can just continue to keep location as a random effect to control for that difference
-## because our research question is regarding difference in bait
+## can just continue to keep location as a random effect to control for that difference
+## because our research question is regarding difference in bait.
 
-model_abund_final <- glmmTMB(
-  total_abundance ~ location + 
-    macroalgae + scytothalia + canopy + ecklonia + mean_relief + depth + bait,
+# Modelo de abundancia.
+# This model answer the question:
+# Does the fish abundance change among specific sites? how sites differ between them?
+model_abund_FIXED <- glmmTMB(
+  total_abundance ~ location + canopy + mean_relief + sd_relief + depth + bait,
   family = nbinom2,
   data = bruv_data
 ) 
-## 1.adding in all the predictors can overfit our data. That is why it is convention
-## that we compare models by their AICc values to see which best fits the data
-## 2. some habitat covariates should not be included together. canopy & macroalgae
-## are strongly correlated, and so should not be included.
-## the canopy covariate was created by adding the %cover of ecklonia & scytothalia together
-## canopy cannot be in a model with ecklonia & scytothalia
 
-summary(model_abund_final)
+library(bbmle) #for AICtab
+AIC(model_abund_FIXED)
+summary(model_abund_FIXED)
+# canopy is the only one significant
 
-# Modelo de abundancia, location as random effect
-# Does habitat and bait affect the abundance of spatial variance by location
+# Modelo de abundancia, location as random effect, bait is the control variable, habitat as covariates
+# Does habitat and bait affect the abundance between location controlled by spatial variation
 # each location is allowed to have different average abundance but without estimate
 # each individual comparison for each location
-model_abund_mixed <- glmmTMB(total_abundance ~
-    macroalgae + scytothalia + canopy + ecklonia + mean_relief + depth + bait +
+# Which predictors explain abundance after controlling location?
+model_abund_RANDOM <- glmmTMB(total_abundance ~ canopy + mean_relief + sd_relief + depth + bait +
     (1|location),
   family = nbinom2,
   data = bruv_data
 )
-## see above comment about predictors that should not be included in a model together
 
-summary(model_abund_mixed) 
+summary(model_abund_RANDOM) 
+# PERMANOVA tested location to assess differences in assemblage structure
+# This models controls spatial variation, evaluates the habitat effects, 
+# avoids overanalysing 
+# the 6 locations.
 
 ## to compare models with and without location as a random effect you do a 
 ## likelihood ratio test (LRT) - see below
 
-model_abund_mixed_reduced <- glmmTMB(total_abundance ~
-     macroalgae + scytothalia + canopy + ecklonia + mean_relief + depth + bait,
-   family = nbinom2,
-   data = bruv_data
-)
-
+summary(model_abund_FIXED)
+summary(model_abund_RANDOM)
 ##LRT
-anova(model_abund_mixed, model_abund_mixed_reduced)
-##However, now we know that species assemblage changes across the study area
-## we should probably keep location as a random effect for now because its not going
-## to affect your actual results output
+library(MuMIn)
+anova(model_abund_RANDOM, model_abund_FIXED)
+AIC(model_abund_FIXED, model_abund_RANDOM)
+# Indeed Location as random factor is the more appropriate to use in this project.
+# Even though its AIC value is higher, Location AS RANDOM.
+
+# GLMM were used to analyse to identify environmental drivers, with location as random factor
+# to account for spatial variation
 
 ## if you want to manually specify you models and not use the full subsets then
 ## you compare them with each other like so:
 
-model_abund_mixed2 <- glmmTMB(total_abundance ~  
-      bait + canopy  + mean_relief + depth + (1|location), 
-    family = nbinom2,
-    data = bruv_data
-)
-
-library(MuMIn)
-AICc(model_abund_mixed, model_abund_mixed2) ##model_abund_mixed2 has less AICc & less predictors
-## which means its a better fit for our data - it is now the new best model
 
 model_abund_mixed3 <- glmmTMB(total_abundance ~  
                                 bait + canopy  + depth + (1|location), 
                               family = nbinom2,
                               data = bruv_data)
+summary(model_abund_mixed3)
 
-AICc(model_abund_mixed3, model_abund_mixed2) ##model_abund_mixed3 has less AICc
+AICc(model_abund_mixed3, model_abund_RANDOM) ##model_abund_mixed3 has less AICc
 ## and less predictors = better model
+
+## It does not mean its a better model. This only means that you have less predictors
+## subsequently it will have less noise, but it shows the same information:
+## that canopy is significant.
 
 model_abund_mixed4 <- glmmTMB(total_abundance ~  
                                 bait + canopy  + (1|location), 
                               family = nbinom2,
                               data = bruv_data)
+summary(model_abund_mixed4)
 
 AICc(model_abund_mixed3, model_abund_mixed4) ##mixed 3 has less AICc than mixed 4 
 ## still best
+## Correction:  AICc
+# model_abund_mixed3  7 954.2708
+# model_abund_mixed4  6 953.0811
+# Model 4 then would be the best of those two
 
 model_abund_mixed5 <- glmmTMB(total_abundance ~  
-                                bait + depth  + (1|location), 
+                                bait + depth + (1|location), 
                               family = nbinom2,
                               data = bruv_data)
+summary(model_abund_mixed5)
+## This model answer the question: Does bait type has an effect on fish assemblage composition?
+## according to summary, no predictor variable is significant.
 
-AICc(model_abund_mixed3, model_abund_mixed5) ##mixed 5 is better because mixed 3
-## has 3 predictors, whereas mixed 5 has only 2. So for mixed 3 to be better it has to have
-## an AICc of 1165.776 or less
+AICc(model_abund_mixed3, model_abund_mixed4, model_abund_mixed5) ##mixed 5 is better because mixed 3
+## has 3 predictors, whereas mixed 5 has only 2.
+
+
 model_abund_mixed6 <- glmmTMB(total_abundance ~  
-                                bait + mean_relief  + (1|location), 
+                                bait + mean_relief + (1|location), 
                               family = nbinom2,
                               data = bruv_data)
 
-AICc(model_abund_mixed6, model_abund_mixed5) ##mixed 5 is still our best model for now
+summary(model_abund_mixed6)
+# mean_relief is the only significant.
 
-## IMPORTANTE - you should go back to the top and make sure you have removed those
-## outlier species, and filtered to successful_count = YES and then check these again
+AICc(model_abund_mixed6, model_abund_mixed4) ## mixed 4 is our best model for now
 
 ## you can also include interactions. If you use the * then a model with bait + canopy*depth
 ## would be considered as a total of 4 predictors (because the * also tests the fixed effects)
@@ -444,29 +464,36 @@ model_abund_mixed7 <- glmmTMB(total_abundance ~
                               family = nbinom2,
                               data = bruv_data)
 
-AICc(model_abund_mixed7, model_abund_mixed2 ) ## these two models technically
-## have the same number of predictors so model_abund_mixed7 is a better model
+AICc(model_abund_mixed7, model_abund_mixed3 ) ## these two models technically
+## have the same number of predictors so model_abund_mixed3 is a better model
 
+# Diagnóstico abundancia
+res_abund <- simulateResiduals(model_abund_RANDOM, 
+                               n = 1000) 
+plot(res_abund) ##Red means bad
+## extra diagnostic tests 
+testDispersion(res_abund) #not great but not broken
+plotResiduals(res_abund, model_abund_final$bait)#  fit well
+plotResiduals(res_abund, model_abund_final$location) # fit well
+## do plotResiduals for any other covariates included in your model
+##plotResiduals(res_abund, model_abund_final$covariate1)
+##plotResiduals(res_abund, model_abund_final$covariate2)
+
+## each model answers different questions, we have to be careful when choosing one
+## without forgetting our main research question.
 ##------------------------------------------------------------------------------
 ## Species richness analysis
-## as I said above - you need to remove the species that are not fish, and the unknowns
-## before running this.
-## you also need to have filtered by successful_count = Yes
-
 
 # Modelo de riqueza
-model_rich_mixed <- glmmTMB(richness ~
-    macroalgae + scytothalia + canopy + ecklonia + mean_relief + depth + bait +
+model_rich_mixed <- glmmTMB(richness ~ canopy + mean_relief + sd_relief + depth + bait +
     (1|location),
   family = nbinom2,
   data = bruv_data)
-## you cannot include canopy + macro together
-## you can't include canopy + scytothalia + ecklonia together
 
+summary(model_rich_mixed)
 ## again - please choose your best model based on AICc
 ## the best model based on those AICc is then used for checking significance
 
-summary(model_rich_mixed)
 library(car)
 Anova(model_rich_mixed) ## this is a better way to look at the results
 ## and by convention a GLMM is reported in an Analysis of Deviance table
@@ -490,28 +517,12 @@ library(DHARMa)
 
 ## for your diagnostics please also include the following:
 
-# Diagnóstico abundancia
-res_abund <- simulateResiduals(model_abund_final, 
-                               n = 1000) 
-plot(res_abund) ##Red means bad
-## extra diagnostic tests 
-testDispersion(res_abund) #not great but not broken
-plotResiduals(res_abund, model_abund_final$bait)#doesn't fit well
-plotResiduals(res_abund, model_abund_final$location) #doesnt fit well
-## do plotResiduals for any other covariates included in your model
-##plotResiduals(res_abund, model_abund_final$covariate1)
-##plotResiduals(res_abund, model_abund_final$covariate2)
-
-##once you have filtered everything and rerun your analyses and selected best model
+## once you have filtered everything and rerun your analyses and selected best model
 ## using AICc then do the diagnostics on the best one
-## if you are getting reds then - then we need to look at other distribution families
-## but I think it will be fine once you hvae address the stuff at the top
-## most importantly - removed species that shouldnt be in there
-## and filtered to successful_count = Yes
 
 
 # Diagnóstico riqueza
-res_rich <- simulateResiduals(model_rich_habitat) ## what is model_rich_habitat?
+res_rich <- simulateResiduals(model_rich_mixed)
 plot(res_rich)
 
 
@@ -556,12 +567,12 @@ ggplot(bruv_data, aes(x = bait, y = richness, fill = bait)) +
   geom_boxplot(alpha = 0.7) +
   theme_classic() +
   labs(
-    title = "Effect of bait on fish species richness",
+    title = "",
     x = "Bait type",
     y = "Species richness"
   ) +
   theme(legend.position = "none")
-
+##-----------------------------------------------------------------------------
 ## plotting your predictions from your best model
 library(ggeffects)
 
@@ -574,7 +585,7 @@ preds <- predict_response(model_abund_mixed,
 preds
 plot(preds)
 
-## basice ggplot of your predictions
+## basic ggplot of your predictions
 glimpse(preds)
 
 library(ggplot2)
