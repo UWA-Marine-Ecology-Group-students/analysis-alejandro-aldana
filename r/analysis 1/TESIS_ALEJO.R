@@ -9,7 +9,7 @@ library(tidyverse)
 #Aca simplemente estamos limpiando los datos
 
 # Load datasets
-metadata <- readRDS("./data/tidy/Baitcomp_All_Metadata.rds")
+# metadata <- readRDS("./data/tidy/Baitcomp_All_Metadata.rds") Metadata was already joined to complete count
 habitat  <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")
 fish     <- readRDS("./data/staging/Baitcomp_All_complete-count.rds")
 
@@ -24,19 +24,16 @@ habitat_clean <- habitat %>%
     sd_relief    = sd.relief
   )
 
-# 3. Make sure join columns match
+# Make sure join columns match
 fish <- fish %>%
-  mutate(sample = as.character(sample))
-
-metadata <- metadata %>%
   mutate(sample = as.character(sample))
 
 habitat_clean <- habitat_clean %>%
   mutate(opcode = as.character(opcode))
 
-# Join fish + metadata + habitat
+# Join fish  + habitat
 data_full <- fish %>%
-  left_join(metadata, by = "sample", suffix = c("", "_meta")) %>%## don't need
+  # left_join(metadata, by = "sample", suffix = c("", "_meta")) %>%## don't need
   left_join(habitat_clean, by = c("sample" = "opcode"))
 
 # Create final clean dataset
@@ -61,15 +58,17 @@ data_clean <- data_full %>%
   ) %>%
   filter(successful_count == "Yes")
 ## Drop number 046 was facing out into open water. it is completely justifiable 
-## to change that NA to 0 for that reason. 
+## to change that NA to 0 for its same reason. 
 data_clean <- data_clean %>%
   mutate(sd_relief = if_else(sample == "046" & is.na(sd_relief), 0, sd_relief))
 
 # Check missing values
 colSums(is.na(data_clean)) 
+# No NA's present in our data set
 
 # Check dimensions and number of samples/species
 dim(data_clean)
+# 9300 obs. 13 variables
 
 data_clean %>%
   summarise(
@@ -78,38 +77,43 @@ data_clean %>%
     n_locations = n_distinct(location),
     n_baits = n_distinct(bait)
   )
+# 6 locations, 3 types of bait, 93 species, 100 sample units
 
-# 8. Check predictor summaries
+# Check predictor summaries
 data_clean %>%
   select(mean_relief, sd_relief, scytothalia, canopy, macroalgae, depth, ecklonia) %>%
   summary()
 
+# confirm no NA's present
 colSums(is.na(data_clean))
-data_clean %>%
-  summarise(
-    n_bruvs = n_distinct(sample),
-    n_species = n_distinct(species),
-    n_locations = n_distinct(location),
-    n_baits = n_distinct(bait)
-  )
 
+# I renamed the data: data_filtered <- data_clean
+data_filtered <- data_clean
+#--------
+# Which species are more abundant?
+
+species_abundance <- data_filtered %>%
+  group_by(species) %>%
+  summarise(
+    total_count  = sum(count, na.rm = TRUE),       # total individuals across all samples
+    n_samples    = sum(count > 0, na.rm = TRUE),   # how many samples the species appeared in
+    mean_count   = round(mean(count, na.rm = TRUE), 2), # average count per sample
+    max_count    = max(count, na.rm = TRUE)        # highest single sample count
+  ) %>%
+  arrange(desc(n_samples)) %>%                   # sort by most abundant first
+  print(n = 20) 
+#-------------------------------------------------------------------------------
 #################################################################################
 #Aca creamos primero un data frame con los datos que realmente nos importa:
 
-#         1. Calculamos abundancia y riqueza por BRUV 
-#.          (que es la unidad de estudio)
-#.        2. Creamos el data frame que nos va a servir para TODO el analisis 
-#.          (bruv_data) aca puedes encontrar las muestras (sample), location, predicted variables
-#.         limpias, la riqueza y la abundancia.
+#     1. Calculamos abundancia y riqueza por BRUV 
+#        (que es la unidad de estudio)
+#     2. Creamos el data frame que nos va a servir para TODO el analisis 
+#        (bruv_data) aca puedes encontrar las muestras (sample), location, predicted variables
+#        limpias, la riqueza y la abundancia.
 
-# Eliminar BRUVS sin datos de hábitat
-## there should only be one drop in the 100 successful_count = Yes that has an NA in sd relief
-## that 
-data_filtered <- data_clean %>%
-  drop_na(macroalgae, scytothalia, canopy, ecklonia, mean_relief, sd_relief) ## data is verified with no NA's and including sd_relief
-
-# Abundancia total por BRUV
-## Some species were removed
+## Abundancia total por BRUV
+## Some species were removed, outliers and not fish species (southern reef squid and common dolphin)
 abundance_bruv <- data_filtered %>%
   filter(!species == "Plesiopidae Trachinops noarlungae")%>%
   filter(!species == "Pempherididae Parapriacanthus elongatus")%>%
@@ -120,14 +124,13 @@ abundance_bruv <- data_filtered %>%
     total_abundance = sum(count, na.rm = TRUE)
   )
 
-# 3. Riqueza por BRUV
-## Dolphin and squid species are removed
+## Riqueza por BRUV
+## Some species were removed, outliers and not fish species (southern reef squid and common dolphin)
 
 richness_bruv <- data_filtered %>%
-  filter(!species == "Plesiopidae Trachinops noarlungae")%>%
-  filter(!species == "Pempherididae Parapriacanthus elongatus")%>%
   filter(!species == "Loliginidae Sepioteuthis australis")%>%
   filter(!species == "Delphinidae Delphinus delphis") %>%
+  filter(!species == "Unknown Unknown Unknown") %>% # species to be removed
   group_by(sample) %>%
   summarise(
     richness = n_distinct(species[count > 0])
@@ -143,16 +146,17 @@ bruv_data <- data_filtered %>%
   left_join(richness_bruv, by = "sample")
 
 bruv_data
-## depth needs to be numeric not integer. Location y bait ahora son factores
+## Depth is set as numeric. Location and bait are now factors
+
 bruv_data <- bruv_data %>%
   mutate(depth = as.numeric(depth),
          location = as.factor(location),
          bait = as.factor(bait))
+
 ## Comprobamos
 str(bruv_data)
 
-###############################################################################
-#Aca estamos revisando que la limpieza haya quedado bien, con el numero de samples,
+# Aca revisamos que la limpieza haya quedado bien, con el numero de samples,
 # location y bait
 
 nrow(bruv_data) ## It is 100, as it should be
@@ -167,12 +171,12 @@ bruv_data %>%
 
 ################################################################################
 
-#EMPECEMOS CON TODO EL ANALISIS YA CON LOS DATOS LIMPIOS#
+# YA CON LOS DATOS LIMPIOS... PROCEDEMOS HACER EL ANALISIS
 
-#Crear matriz de comunidad: Necesitamos pasar de formato largo a ancho
-data_nmds <- data_filtered %>%
-  drop_na(species, count) 
+# Primero, necesitamos pasar de formato largo a ancho
+# Long to wide format done.
 
+# Creamos nuestra matriz de comunidad
 community_matrix <- data_nmds %>%
   select(sample, species, count) %>%
   pivot_wider(
@@ -189,7 +193,6 @@ community_matrix_mat <- community_matrix %>%
 #esto reduce el peso de especies dominantes
 community_matrix_sqrt <- sqrt(community_matrix_mat) 
 
-
 #ahora tienes: filas = sample, columnas = especies, valores = abundancia.
 
 #=================############## NMDS ###############====================
@@ -205,20 +208,7 @@ nmds <- metaMDS(
 
 nmds$stress ##0.21 is high. 
 
-nmds2 <- metaMDS(
-  community_matrix_mat,
-  distance = "bray",
-  k = 2,
-  trymax = 200 #increasing here first 
-)
-
-nmds2$stress #still 0.21
-
-# k = 3 is very difficult to plot because data is overlaping but
-# permanova shows it is significantly different. That is why the stress of the 
-# nMDS is in the limit but we care more about the statistical test rather than
-# a visualization
-
+# k = 3
 nmds3 <- metaMDS(
   community_matrix_mat,
   distance = "bray",
@@ -226,29 +216,25 @@ nmds3 <- metaMDS(
   trymax = 100 
 )
 
-nmds3$stress #0.16 is better
+nmds3$stress # 0.16
 
 # checking if any species occurring in fewer than 2 samples
-which(colSums(community_matrix_mat > 0) <= 2)
+ which(colSums(community_matrix_mat > 0) <= 2)
+ 
+#nmds_points <- as.data.frame(nmds$points)
+#nmds_points$sample <- rownames(nmds_points)
+ 
+# nmds_data <- nmds_points %>%
+#   left_join(bruv_data, by = "sample")
+# 
+# ##doing the above 3 bits with the nmds3
+# nmds3_points <- as.data.frame(nmds3$points)
+# nmds3_points$sample <- rownames(nmds3_points)
+# 
+# nmds3_data <- nmds3_points %>%
+#   left_join(bruv_data, by = "sample")
 
-
-nmds_points <- as.data.frame(nmds$points)
-nmds_points$sample <- rownames(nmds_points)
-
-nmds_data <- nmds_points %>%
-  left_join(bruv_data, by = "sample")
-
-##doing the above 3 bits with the nmds3
-
-nmds3_points <- as.data.frame(nmds3$points)
-nmds3_points$sample <- rownames(nmds3_points)
-
-nmds3_data <- nmds3_points %>%
-  left_join(bruv_data, by = "sample")
-
-
-# Ahora lets plot
-
+# Ahora ploteamos
 library(ggplot2)
 
 ggplot(nmds_data, aes(x = MDS1, y = MDS2, color = location)) +
@@ -256,8 +242,7 @@ ggplot(nmds_data, aes(x = MDS1, y = MDS2, color = location)) +
   stat_ellipse() +
   theme_minimal()
 
-## repeating with the nmds3 one I made - it gives 3 ordinations
-## so I've made 3 plots to look - see the x & y
+# nmds3 gives 3 ordinations
 ggplot(nmds3_data, aes(x = MDS1, y = MDS2, color = location)) +
   geom_point(size = 3) +
   stat_ellipse() +
@@ -273,20 +258,19 @@ ggplot(nmds3_data, aes(x = MDS1, y = MDS3, color = location)) +
   stat_ellipse() +
   theme_minimal()
 
-#The NMDS ordination showed substantial overlap among locations, 
-#suggesting broadly similar fish assemblages across sites,
-#although some variability was observed.
+# Although 0.16 in nMDS is better, k = 3 is difficult to visualize in a plot because data is
+# overlaping but permanova shows it is significantly different. That is why the stress of the 
+# nMDS is in the limit but we care more about the statistical test rather than
+# the visualization itself
 
-# This was known before plotting with 3 dimensions. Either way of visualization type
-# is valid and tells us the same information, that data is overlapping
-
-#=================#######  PERMANOVA    #########===========================
+#=================#######    PERMANOVA    #########=============================
 
 nrow(community_matrix_mat)
 nrow(bruv_data)
 # Both coincide
 
 # Crear metadata SOLO para los BRUVS que están en la matriz
+
 bruv_data_nmds <- bruv_data %>%
   filter(sample %in% rownames(community_matrix_mat)) %>%
   arrange(match(sample, rownames(community_matrix_mat)))
@@ -294,7 +278,7 @@ bruv_data_nmds <- bruv_data %>%
 # Revisar que coincidan
 nrow(community_matrix_mat)
 nrow(bruv_data_nmds)
-# both show same amount which is good
+# confirmed
 
 all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
 
@@ -302,6 +286,7 @@ all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
 
 library(vegan)
 
+# Bait
 adonis_result <- adonis2(
   community_matrix_mat ~ location,
   data = bruv_data_nmds,
@@ -311,14 +296,34 @@ adonis_result <- adonis2(
 
 adonis_result
 
-#Fish assemblage structure differed significantly among locations 
-#(PERMANOVA, F₅,₉₄ = 1.47, p = 0.009), although location explained 
-#a relatively small proportion of the total variation (R² = 0.07).
-#this indicates that while spatial differences exist, 
-#fish communities are broadly similar across sites.
+# Bait is not significant. These means there is no difference in fish community
+# assemblage by bait type.
+
+# Location
+adonis_result_location <- adonis2(
+  community_matrix_mat ~ location,
+  data = bruv_data_nmds,
+  method = "bray",
+  permutations = 9999
+)
+
+adonis_result_location
+
+# Fish assemblage structure differed significantly among locations 
+# (PERMANOVA, F₅,₉₄ = 1.47, p = 0.009), although location explained 
+# a relatively small proportion of the total variation (R² = 0.07).
+# this indicates that while spatial differences exist, 
+# fish communities are broadly similar across sites.
 
 
-#### BETADISPER ####
+#=======### BETADISPER ###========#
+
+dispersion_bait <- betadisper(
+  vegdist(community_matrix_mat, method = "bray"),
+  bruv_data_nmds$bait
+)
+
+anova(dispersion_bait)
 
 dispersion <- betadisper(
   vegdist(community_matrix_mat, method = "bray"),
@@ -327,17 +332,15 @@ dispersion <- betadisper(
 
 anova(dispersion)
 
-#There were no significant differences in multivariate dispersion among 
-#locations (PERMDISP, p = 0.23), indicating that the observed differences 
-#are due to changes in community composition rather than differences in variability.
+# There were no significant differences in multivariate dispersion among 
+# locations (PERMDISP, p = 0.23), indicating that the observed differences 
+# are due to changes in community composition rather than differences in variability.
 
 
-#================== ###### GLMM  ######================================
-## bait and locations are factors. Depth is already numeric
+#===================######  GLMM  ######================================
 
 #Con los modelos vamos a responder:
 #¿Qué variables de hábitat explican la abundancia y riqueza de peces?
-
 
 library(glmmTMB)
 
@@ -350,11 +353,10 @@ pred_vars <- c("depth_m",
                "macroalgae", 
                "ecklonia")
 
-# Modelo de abundancia, loaction as a fixed effect
-# does abundance varies between specific locations?
-## now that we know that community assemblage changes across the locations we 
-## can just continue to keep location as a random effect to control for that difference
-## because our research question is regarding difference in bait.
+# Does abundance varies between specific locations?
+# now that we know that community assemblage changes across the locations we 
+# can just continue to keep location as a random effect to control for that difference
+# because our research question is regarding difference in bait.
 
 # Modelo de abundancia.
 # This model answer the question:
@@ -415,9 +417,7 @@ summary(model_abund_mixed3)
 AICc(model_abund_mixed3, model_abund_RANDOM) ##model_abund_mixed3 has less AICc
 ## and less predictors = better model
 
-## It does not mean its a better model. This only means that you have less predictors
-## subsequently it will have less noise, but it shows the same information:
-## that canopy is significant.
+## It shows the same information: that canopy is significant.
 
 model_abund_mixed4 <- glmmTMB(total_abundance ~  
                                 bait + canopy  + (1|location), 
@@ -613,4 +613,3 @@ plot(preds2)
 ## for now I wouldn't bother because we don't care about habitat - we only care about
 ## bait, and habitat was included in the models to control for its effects so we could
 ## see what bait was doing to total abundance/species richness
-
