@@ -338,12 +338,12 @@ model_abund_mixed_reduced <- glmmTMB(total_abundance ~
 
 ##LRT
 anova(model_abund_mixed, model_abund_mixed_reduced)
-##However, now we know that species assemblage changes across the study area
+
+## However, now we know that species assemblage changes across the study area
 ## we should probably keep location as a random effect for now because its not going
 ## to affect your actual results output
 
-## if you want to manually specify you models and not use the full subsets then
-## you compare them with each other like so:
+## We manually specify the models
 
 model_abund_mixed2 <- glmmTMB(total_abundance ~  
       bait + canopy  + mean_relief + depth + (1|location), 
@@ -388,9 +388,6 @@ model_abund_mixed6 <- glmmTMB(total_abundance ~
 
 AICc(model_abund_mixed6, model_abund_mixed5) ##mixed 5 is still our best model for now
 
-## IMPORTANTE - you should go back to the top and make sure you have removed those
-## outlier species, and filtered to successful_count = YES and then check these again
-
 ## you can also include interactions. If you use the * then a model with bait + canopy*depth
 ## would be considered as a total of 4 predictors (because the * also tests the fixed effects)
 ## or bait + 3
@@ -404,23 +401,14 @@ AICc(model_abund_mixed7, model_abund_mixed2 ) ## these two models technically
 ## have the same number of predictors so model_abund_mixed7 is a better model
 
 ##------------------------------------------------------------------------------
-## Species richness analysis
-## as I said above - you need to remove the species that are not fish, and the unknowns
-## before running this.
-## you also need to have filtered by successful_count = Yes
 
-
-# Modelo de riqueza
+# Modelo de riqueza - mixed
 model_rich_mixed <- glmmTMB(richness ~
     macroalgae + scytothalia + canopy + ecklonia + mean_relief + sd_relief + depth + bait +
     (1|location),
   family = nbinom2,
   data = bruv_data)
-## you cannot include canopy + macro together
-## you can't include canopy + scytothalia + ecklonia together
 
-## again - please choose your best model based on AICc
-## the best model based on those AICc is then used for checking significance
 
 summary(model_rich_mixed)
 library(car)
