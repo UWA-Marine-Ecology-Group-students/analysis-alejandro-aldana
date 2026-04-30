@@ -346,7 +346,7 @@ anova(model_abund_mixed, model_abund_mixed_reduced)
 ## We manually specify the models
 
 model_abund_mixed2 <- glmmTMB(total_abundance ~  
-      bait + canopy  + mean_relief + depth + (1|location), 
+      bait + canopy  + mean_relief + sd_relief + depth + (1|location), 
     family = nbinom2,
     data = bruv_data
 )
