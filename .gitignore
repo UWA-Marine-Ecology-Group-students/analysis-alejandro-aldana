@@ -1,7 +1,11 @@
-.Rproj.user
+# R history
 .Rhistory
 .RData
-.Ruserdata
-.DS_store
+.Rproj.user/
+ 
+# Mac-specific
+.DS_Store
+ 
+# Windows-specific
 Thumbs.db
 desktop.ini
