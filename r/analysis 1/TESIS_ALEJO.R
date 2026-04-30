@@ -298,7 +298,6 @@ anova(dispersion_bait)
 # We confirm the non- significant PERMANOVA.There were no significant differences 
 # in multivariate dispersion among bait types (PERMDISP, p = 0.24).
 
-
 # Location
 dispersion <- betadisper(
   vegdist(community_matrix_mat, method = "bray"),
