@@ -320,8 +320,8 @@ anova(dispersion)
 #¿Qué variables de hábitat explican la abundancia y riqueza de peces?
 
 library(glmmTMB)
-
-pred_vars <- c("depth_m",
+library(MuMIn)
+pred_vars <- c("depth",
                "mean_relief", 
                "sd_relief",
                "scytothalia",
@@ -330,7 +330,8 @@ pred_vars <- c("depth_m",
                "ecklonia")
 
 
-# Modelo de abundancia, location as random effect
+# GLMM de abundancia 
+# location as random effect
 
 # Does habitat and bait affect the abundance of spatial variance by location
 # each location is allowed to have different average abundance but without estimate
@@ -340,138 +341,215 @@ model_abund_mixed <- glmmTMB(total_abundance ~
     macroalgae + scytothalia + canopy + ecklonia + mean_relief + sd_relief + depth + bait +
     (1|location),
   family = nbinom2,
-  data = bruv_data
-)
+  data = bruv_data)
 
-summary(model_abund_mixed) 
+Anova(model_abund_mixed)
 
-model_abund_mixed_reduced <- glmmTMB(total_abundance ~
-     macroalgae + scytothalia + canopy + ecklonia + mean_relief + sd_relief + depth + bait,
-   family = nbinom2,
-   data = bruv_data
-)
-# To compare models with and without location as a random effect we performs 
-# likelihood ratio test (LRT)
-
-anova(model_abund_mixed, model_abund_mixed_reduced)
-
-## However, now we know that species assemblage changes across the study area
-## we should probably keep location as a random effect for now because its not going
-## to affect your actual results output
-
-## We manually specify the models
+# We manually specify the models
 
 model_abund_mixed2 <- glmmTMB(total_abundance ~  
-      bait + canopy  + mean_relief + sd_relief + depth + (1|location), 
+    bait + canopy + mean_relief + sd_relief + depth + (1|location), 
     family = nbinom2,
-    data = bruv_data
-)
+    data = bruv_data)
 
-library(MuMIn)
-AICc(model_abund_mixed, model_abund_mixed2) ##model_abund_mixed2 has less AICc & less predictors
-## which means its a better fit for our data - it is now the new best model
+Anova(model_abund_mixed2)
+
+anova(model_abund_mixed, model_abund_mixed2)
 
 model_abund_mixed3 <- glmmTMB(total_abundance ~  
-                                bait + canopy  + depth + (1|location), 
-                              family = nbinom2,
-                              data = bruv_data)
+    bait + canopy + (1|location), 
+    family = nbinom2,
+    data = bruv_data)
 
-AICc(model_abund_mixed3, model_abund_mixed2) ##model_abund_mixed3 has less AICc
-## and less predictors = better model
+Anova(model_abund_mixed3)
 
-## It shows the same information: that canopy is significant.
+anova(model_abund_mixed3, model_abund_mixed2) #
+
+# Canopy is significant.
 
 model_abund_mixed4 <- glmmTMB(total_abundance ~  
-                                bait + canopy  + (1|location), 
-                              family = nbinom2,
-                              data = bruv_data)
+     bait + macroalgae + (1|location), 
+     family = nbinom2,
+     data = bruv_data)
 
-AICc(model_abund_mixed3, model_abund_mixed4) ##mixed 3 has less AICc than mixed 4 
-## still best
+Anova(model_abund_mixed4)
 
-model_abund_mixed5 <- glmmTMB(total_abundance ~  
-                                bait + depth  + (1|location), 
-                              family = nbinom2,
-                              data = bruv_data)
+anova(model_abund_mixed3, model_abund_mixed4) 
 
-AICc(model_abund_mixed3, model_abund_mixed5) ##mixed 5 is better because mixed 3
-## has 3 predictors, whereas mixed 5 has only 2. So for mixed 3 to be better it has to have
-## an AICc of 1165.776 or less
-model_abund_mixed6 <- glmmTMB(total_abundance ~  
-                                bait + mean_relief  + (1|location), 
-                              family = nbinom2,
-                              data = bruv_data)
+#######  MODEL SELECTION TABLE  #######
 
-AICc(model_abund_mixed6, model_abund_mixed5) ##mixed 5 is still our best model for now
+library(tidyverse)
+library(MuMIn)
+library(lme4)     # for nobars(), used to remove random effects from formulas
 
-## you can also include interactions. If you use the * then a model with bait + canopy*depth
-## would be considered as a total of 4 predictors (because the * also tests the fixed effects)
-## or bait + 3
-## for example
-model_abund_mixed7 <- glmmTMB(total_abundance ~  
-                                bait + canopy*depth + (1|location), 
-                              family = nbinom2,
-                              data = bruv_data)
+# Put all your abundance candidate models into one list
+abund_models <- list(
+  random_location      = model_abund_mixed,
+  canopy_relief        = model_abund_mixed2,
+  canopy_deth          = model_abund_mixed3,
+  macroalgae_depth     = model_abund_mixed4)
 
-AICc(model_abund_mixed7, model_abund_mixed2 ) ## these two models technically
-## have the same number of predictors so model_abund_mixed7 is a better model
+# Function to count fixed predictor terms only
+# This removes random effect
+count_fixed_terms <- function(model) {
+  fixed_formula <- lme4::nobars(formula(model))
+  predictors <- attr(terms(fixed_formula), "term.labels")
+  length(predictors)
+}
+
+# Function to extract fixed predictor names only
+get_fixed_terms <- function(model) {
+  fixed_formula <- lme4::nobars(formula(model))
+  predictors <- attr(terms(fixed_formula), "term.labels")
+  paste(predictors, collapse = " + ")
+}
+
+# Create AICc model selection table
+abund_model_table <- tibble(
+  model_object = abund_models) %>%
+  mutate(
+    formula = map_chr(model_object, ~ paste(deparse(formula(.x)), collapse = "")),
+    No_Par = map_dbl(model_object, ~ attr(logLik(.x), "df")),
+    logLik = map_dbl(model_object, ~ as.numeric(logLik(.x))),
+    AICc = map_dbl(model_object, MuMIn::AICc)
+  ) %>%
+  mutate(
+    Delta_AICc = AICc - min(AICc),
+    wi_AICc = exp(-0.5 * Delta_AICc) / sum(exp(-0.5 * Delta_AICc))
+  ) %>%
+  arrange(AICc) %>%
+  mutate(
+    across(
+      c(logLik, AICc, Delta_AICc, wi_AICc),
+      ~ round(.x, 3)
+    )
+  ) %>%
+  select(formula, No_Par, logLik, AICc, Delta_AICc, wi_AICc,)
+
+# View table
+abund_model_table
+
+# Models with substantial support: delta AICc <= 2
+best_abund_models <- abund_model_table %>%
+  filter(Delta_AICc <= 2) %>%
+  arrange(No_Par, AICc)
+
+best_abund_models
+
+# Fish abundance was significantly positively associated with canopy (p < 0.001),
+# while remaining habitat variables remained not significant. 
 
 ##------------------------------------------------------------------------------
 
-# Modelo de riqueza - mixed
+# GLMM de riqueza
+
 model_rich_mixed <- glmmTMB(richness ~
-    macroalgae + scytothalia + canopy + ecklonia + mean_relief + sd_relief + depth + bait +
-    (1|location),
+  macroalgae + scytothalia + canopy + ecklonia + mean_relief + sd_relief + depth + bait +
+  (1|location),
   family = nbinom2,
   data = bruv_data)
 
+Anova(model_rich_mixed)
 
-summary(model_rich_mixed)
-library(car)
-Anova(model_rich_mixed) ## this is a better way to look at the results
-## and by convention a GLMM is reported in an Analysis of Deviance table
-## which is what this does for you 
-## see console: 
-# > Anova(model_rich_mixed)
-# Analysis of Deviance Table (Type II Wald chisquare tests)
+# We manually specify the models
 
+# Depth is not significant.
 
-#Fish abundance was significantly positively associated with depth (p < 0.001),
-#while habitat variables including macroalgae cover, canopy, 
-#and Ecklonia were not significant predictors when Location as random
+model_rich_mixed2 <- glmmTMB(richness ~  
+    bait + macroalgae + (1|location),
+    family = nbinom2,
+    data = bruv_data)
 
-#Fish richness was signifcantly influenced by bait type (p=0.009), with a marginal positive
-#effect of habitat complexity (mean relieve, p=0.06)
-#Variation among locations contributed little to richness and abundance in mixed models,
-#despite significant differences in overall assemblage structure
+Anova(model_rich_mixed2)
 
+model_rich_mixed3 <- glmmTMB(richness ~  
+    bait + canopy + (1|location), 
+    family = nbinom2,
+    data = bruv_data)
+
+Anova(model_rich_mixed3)
+
+#######  MODEL SELECTION TABLE  #######
+
+library(tidyverse)
+library(MuMIn)
+library(lme4)     # for nobars(), used to remove random effects from formulas
+
+# Put all your abundance candidate models into one list
+rich_models <- list(
+  random_location      = model_rich_mixed,
+  canopy_relief        = model_rich_mixed2,
+  canopy_deth          = model_rich_mixed3)
+
+# Function to count fixed predictor terms only
+# This removes random effect
+count_fixed_terms <- function(model) {
+  fixed_formula <- lme4::nobars(formula(model))
+  predictors <- attr(terms(fixed_formula), "term.labels")
+  length(predictors)
+}
+
+# Function to extract fixed predictor names only
+get_fixed_terms <- function(model) {
+  fixed_formula <- lme4::nobars(formula(model))
+  predictors <- attr(terms(fixed_formula), "term.labels")
+  paste(predictors, collapse = " + ")
+}
+
+# Create AICc model selection table
+rich_model_table <- tibble(
+  model_object = rich_models) %>%
+  mutate(
+    formula = map_chr(model_object, ~ paste(deparse(formula(.x)), collapse = "")),
+    No_Par = map_dbl(model_object, ~ attr(logLik(.x), "df")),
+    logLik = map_dbl(model_object, ~ as.numeric(logLik(.x))),
+    AICc = map_dbl(model_object, MuMIn::AICc)
+  ) %>%
+  mutate(
+    Delta_AICc = AICc - min(AICc),
+    wi_AICc = exp(-0.5 * Delta_AICc) / sum(exp(-0.5 * Delta_AICc))
+  ) %>%
+  arrange(AICc) %>%
+  mutate(
+    across(
+      c(logLik, AICc, Delta_AICc, wi_AICc),
+      ~ round(.x, 3)
+    )
+  ) %>%
+  select(Model, formula, No_Par, logLik, AICc, Delta_AICc, wi_AICc,)
+
+# View table
+rich_model_table
+
+# Models with substantial support: delta AICc <= 2
+best_rich_models <- rich_model_table %>%
+  filter(Delta_AICc <= 2) %>%
+  arrange(No_Par, AICc)
+
+best_rich_models
+
+# Fish richness was signifcantly influenced by macroalgae (p = 0.028),
+# Variation among locations contributed little to richness and abundance in mixed models,
+# despite some significant differences in overall assemblage structure
+
+#---------------------------
 # install.packages("DHARMa")
 library(DHARMa)
 
-## for your diagnostics please also include the following:
-
 # Diagnóstico abundancia
-res_abund <- simulateResiduals(model_abund_final, 
+res_abund <- simulateResiduals(model_abund_mixed3, 
                                n = 1000) 
 plot(res_abund) ##Red means bad
 ## extra diagnostic tests 
 testDispersion(res_abund) #not great but not broken
-plotResiduals(res_abund, model_abund_final$bait)#doesn't fit well
-plotResiduals(res_abund, model_abund_final$location) #doesnt fit well
-## do plotResiduals for any other covariates included in your model
-##plotResiduals(res_abund, model_abund_final$covariate1)
-##plotResiduals(res_abund, model_abund_final$covariate2)
-
-##once you have filtered everything and rerun your analyses and selected best model
-## using AICc then do the diagnostics on the best one
-## if you are getting reds then - then we need to look at other distribution families
-## but I think it will be fine once you hvae address the stuff at the top
-## most importantly - removed species that shouldnt be in there
-## and filtered to successful_count = Yes
+plotResiduals(res_abund, model_abund_mixed3$bait)
+plotResiduals(res_abund, model_abund_mixed3$location) 
+plotResiduals(res_abund, model_abund_mixed3$canopy)
+plotResiduals(res_abund, model_abund_mixed3$macroalgae)
 
 
 # Diagnóstico riqueza
-res_rich <- simulateResiduals(model_rich_habitat) ## what is model_rich_habitat?
+res_rich <- simulateResiduals(model_rich_final, n = 1000)
 plot(res_rich)
 
 
