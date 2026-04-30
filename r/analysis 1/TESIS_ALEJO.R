@@ -131,7 +131,7 @@ bruv_data <- data_clean %>%
 
 bruv_data
 
-## Depth is set as numeric. Location and bait are now factors
+## Depth as numeric. Location and bait are now factors
 bruv_data <- bruv_data %>%
   mutate(depth = as.numeric(depth),
          location = as.factor(location),
@@ -203,8 +203,7 @@ nmds <- metaMDS(
   community_matrix_mat,
   distance = "bray",
   k = 2,
-  trymax = 100 
-)
+  trymax = 100 )
 
 nmds$stress ##0.21 is high. 
 
@@ -222,15 +221,15 @@ nmds_scores$bait     <- bruv_data$bait
  
 # Bait plot
 ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = bait)) +
-   geom_point(size = 3) +
+   geom_point(size = 2) +
    stat_ellipse() +
-   theme_minimal()
+   theme_classic()
  
 # Location plot
 ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = location)) +
-  geom_point(size = 3) +
+  geom_point(size = 2) +
   stat_ellipse() +
-  theme_minimal()
+  theme_classic()
 
 # Although 0.16 in nMDS is better, k = 3 is difficult sample()# Although 0.16 in nMDS is better, k = 3 is difficult to visualize in a plot because data is
 # overlaping but permanova shows it is significantly different. That is why the stress of the 
@@ -252,7 +251,6 @@ bruv_data_nmds <- bruv_data %>%
 nrow(community_matrix_mat)
 nrow(bruv_data_nmds)
 # confirmed
-
 all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
 
 #Y corremos el PERMANOVA
@@ -270,8 +268,8 @@ adonis_result <- adonis2(
 adonis_result
 
 # Fish assemblage structure did not differed among bait types.
-# (PERMANOVA, p = 0.413). Bait type only explains the 2.1% of the total variation 
-# of fish assemblages (R² = 0.021)
+# (PERMANOVA, p = 0.4). Bait type only explains the 2.0% of the total variation 
+# of fish assemblages (R² = 0.020)
 
 # Location
 adonis_result_location <- adonis2(
@@ -284,8 +282,8 @@ adonis_result_location <- adonis2(
 adonis_result_location
 
 # Location explains significantly the fish assemblage composition. 
-# (PERMANOVA, F₅,₉₄ = 1.465, p = 0.009), Location explains the 7.2% of the 
-# variation (R² = 0.07). This indicates that while spatial differences exist, 
+# (PERMANOVA, F₅,₉₄ = 1.465, p = 0.014), Location explains the 7.2% of the 
+# variation (R² = 0.072). This indicates that while spatial differences exist, 
 # fish communities are broadly similar across sites.
 
 
@@ -386,8 +384,8 @@ library(lme4)     # for nobars(), used to remove random effects from formulas
 abund_models <- list(
   random_location      = model_abund_mixed,
   canopy_relief        = model_abund_mixed2,
-  canopy_deth          = model_abund_mixed3,
-  macroalgae_depth     = model_abund_mixed4)
+  canopy               = model_abund_mixed3,
+  macroalgae           = model_abund_mixed4)
 
 # Function to count fixed predictor terms only
 # This removes random effect
@@ -439,7 +437,14 @@ best_abund_models
 # Fish abundance was significantly positively associated with canopy (p < 0.001),
 # while remaining habitat variables remained not significant. 
 
+# Best model: total_abundance ~ bait + canopy + (1 | location)
+# Most parsimonious with less predictor variables
+
 ##------------------------------------------------------------------------------
+library(glmmTMB)
+library(tidyverse)
+library(MuMIn)
+library(lme4)
 
 # GLMM de riqueza
 
@@ -449,25 +454,25 @@ model_rich_mixed <- glmmTMB(richness ~
   family = nbinom2,
   data = bruv_data)
 
-Anova(model_rich_mixed)
+summary(model_rich_mixed)
+
+# Macroalgae is significant.
 
 # We manually specify the models
-
-# Depth is not significant.
 
 model_rich_mixed2 <- glmmTMB(richness ~  
     bait + macroalgae + (1|location),
     family = nbinom2,
     data = bruv_data)
 
-Anova(model_rich_mixed2)
+summary(model_rich_mixed2)
 
 model_rich_mixed3 <- glmmTMB(richness ~  
     bait + canopy + (1|location), 
     family = nbinom2,
     data = bruv_data)
 
-Anova(model_rich_mixed3)
+summary(model_rich_mixed3)
 
 #######  MODEL SELECTION TABLE  #######
 
@@ -516,7 +521,7 @@ rich_model_table <- tibble(
       ~ round(.x, 3)
     )
   ) %>%
-  select(Model, formula, No_Par, logLik, AICc, Delta_AICc, wi_AICc,)
+  select(formula, No_Par, logLik, AICc, Delta_AICc, wi_AICc,)
 
 # View table
 rich_model_table
@@ -532,16 +537,18 @@ best_rich_models
 # Variation among locations contributed little to richness and abundance in mixed models,
 # despite some significant differences in overall assemblage structure
 
+# Best model: richness ~ bait + macroalgae + (1 | location)
+# Most parsimonious with less predictor variables
+
 #---------------------------
 # install.packages("DHARMa")
 library(DHARMa)
 
 # Diagnóstico abundancia
-res_abund <- simulateResiduals(model_abund_mixed3, 
-                               n = 1000) 
-plot(res_abund) ##Red means bad
+res_abund <- simulateResiduals(model_abund_mixed3, n = 1000) 
+plot(res_abund)
 ## extra diagnostic tests 
-testDispersion(res_abund) #not great but not broken
+testDispersion(res_abund)
 plotResiduals(res_abund, model_abund_mixed3$bait)
 plotResiduals(res_abund, model_abund_mixed3$location) 
 plotResiduals(res_abund, model_abund_mixed3$canopy)
@@ -549,14 +556,16 @@ plotResiduals(res_abund, model_abund_mixed3$macroalgae)
 
 
 # Diagnóstico riqueza
-res_rich <- simulateResiduals(model_rich_final, n = 1000)
+res_rich <- simulateResiduals(model_rich_mixed2, n = 1000)
 plot(res_rich)
+## extra diagnostic tests 
+testDispersion(res_rich) 
+plotResiduals(res_rich, model_rich_mixed2$bait)
+plotResiduals(res_rich, model_rich_mixed2$location) 
+plotResiduals(res_rich, model_rich_mixed2$canopy)
+plotResiduals(res_rich, model_rich_mixed2$macroalgae)
 
-
-####### 
-## these plots are just from your raw data which is fine to look at 
-## but for your thesis you need to plot your predicted total_abundance and
-## richness from your best model - I will add to the bottom
+##====================## PLOTS ##========================##
 ggplot(bruv_data, aes(x = location, y = total_abundance, fill = location)) +
 geom_boxplot(alpha = 0.7) +
   theme_classic() +
@@ -579,13 +588,13 @@ ggplot(bruv_data, aes(x = location, y = richness, fill = location)) +
   theme(legend.position = "none")
 
 
-ggplot(bruv_data, aes(x = depth, y = total_abundance)) +
+ggplot(bruv_data, aes(x = bait, y = total_abundance)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "glm", method.args = list(family = "poisson"), color = "blue") +
   theme_classic() +
   labs(
     title = "",
-    x = "Depth (m)",
+    x = "Bait type",
     y = "Total abundance"
   )
 
@@ -594,7 +603,7 @@ ggplot(bruv_data, aes(x = bait, y = richness, fill = bait)) +
   geom_boxplot(alpha = 0.7) +
   theme_classic() +
   labs(
-    title = "Effect of bait on fish species richness",
+    title = "",
     x = "Bait type",
     y = "Species richness"
   ) +
@@ -603,16 +612,16 @@ ggplot(bruv_data, aes(x = bait, y = richness, fill = bait)) +
 ## plotting your predictions from your best model
 library(ggeffects)
 
-##lets look at bait now - which we really care about even though theres no difference
-preds <- predict_response(model_abund_mixed,
-                                 terms = c("bait"), #will automatically average over covariates
-                                 bias_correction = T) 
-##ignore warning
+# lets look at bait now - which we really care about even though theres no difference
+preds <- predict_response(model_abund_mixed3,
+         terms = c("bait"), #will automatically average over covariates
+        bias_correction = T) 
+# ignore warning
 
 preds
 plot(preds)
 
-## basice ggplot of your predictions
+## basic ggplot of predictions
 glimpse(preds)
 
 library(ggplot2)
@@ -620,21 +629,33 @@ library(ggplot2)
 ggplot(preds, aes(x = x, y = predicted)) +
   geom_point(size = 4) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
+  scale_x_discrete(
+    labels = c(
+      "abalone" = "Abalone",
+      "pilchard" = "Pilchard",
+      "octopus" = "Octopus"
+    )
+  ) +
   labs(
     x = "Bait Type",
-    y = "Predicted Total Abundance",
+    y = "Predicted Total Abundance"
   ) +
   theme_classic()
-## can customise bait colours 
-## update the names on the x axis so that they are capitalised (Abalone, Pilchard, Octopus)
 
 ## if you want to look at your predicted total abundance by your other covariates
 ## you just change the terms
-preds2 <- predict_response(model_abund_mixed,
+preds2 <- predict_response(model_abund_mixed3,
                           terms = c("canopy"), #will automatically average over other covariates
                           bias_correction = T) 
 preds2
-plot(preds2)
+ggplot(preds2, aes(x = x, y = predicted)) +
+  geom_point(size = 1) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  labs(
+    x = "Canopy",
+    y = "Predicted Total Abundance"
+  ) +
+  theme_classic()
 
 ## when you are turning your model predictions into plots with a continuous predictor
 ## you should also include your raw data points on your plot
