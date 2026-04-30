@@ -340,7 +340,9 @@ model_abund_mixed <- glmmTMB(total_abundance ~
   family = nbinom2,
   data = bruv_data)
 
-Anova(model_abund_mixed)
+summary(model_abund_mixed)
+
+# Canopy is significant.
 
 # We manually specify the models
 
@@ -349,7 +351,7 @@ model_abund_mixed2 <- glmmTMB(total_abundance ~
     family = nbinom2,
     data = bruv_data)
 
-Anova(model_abund_mixed2)
+summary(model_abund_mixed2)
 
 anova(model_abund_mixed, model_abund_mixed2)
 
@@ -358,18 +360,16 @@ model_abund_mixed3 <- glmmTMB(total_abundance ~
     family = nbinom2,
     data = bruv_data)
 
-Anova(model_abund_mixed3)
+summary(model_abund_mixed3)
 
 anova(model_abund_mixed3, model_abund_mixed2) #
-
-# Canopy is significant.
 
 model_abund_mixed4 <- glmmTMB(total_abundance ~  
      bait + macroalgae + (1|location), 
      family = nbinom2,
      data = bruv_data)
 
-Anova(model_abund_mixed4)
+summary(model_abund_mixed4)
 
 anova(model_abund_mixed3, model_abund_mixed4) 
 
@@ -565,9 +565,19 @@ plotResiduals(res_rich, model_rich_mixed2$canopy)
 plotResiduals(res_rich, model_rich_mixed2$macroalgae)
 
 ##====================## PLOTS ##========================##
+
+# Location
 ggplot(bruv_data, aes(x = location, y = total_abundance, fill = location)) +
 geom_boxplot(alpha = 0.7) +
   theme_classic() +
+  scale_x_discrete(
+    labels = c(
+      "arid" = "Cape Arid",
+      "legrande" = "Cape Legrande",
+      "mart" = "Marts Island",
+      "middle" = "Middle Island",
+      "mondrain" = "Mondrain Island",
+      "twin" = "Twin Peak Islands")) +
   labs(
     title = "",
     x = "Location",
@@ -579,28 +589,47 @@ geom_boxplot(alpha = 0.7) +
 ggplot(bruv_data, aes(x = location, y = richness, fill = location)) +
   geom_boxplot(alpha = 0.7) +
   theme_classic() +
+  scale_x_discrete(
+    labels = c(
+      "arid" = "Cape Arid",
+      "legrande" = "Cape Legrande",
+      "mart" = "Marts Island",
+      "middle" = "Middle Island",
+      "mondrain" = "Mondrain Island",
+      "twin" = "Twin Peak Islands")) +
   labs(
     title = "",
     x = "Location",
-    y = "Species richness"
+    y = "Total abundance"
   ) +
   theme(legend.position = "none")
 
+# Bait
 
-ggplot(bruv_data, aes(x = bait, y = total_abundance)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "glm", method.args = list(family = "poisson"), color = "blue") +
+ggplot(bruv_data, aes(x = bait, y = total_abundance, fill = bait)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.15, alpha = 0.6, size = 2) +
   theme_classic() +
+  scale_x_discrete(
+  labels = c(
+    "abalone"  = "Abalone",
+    "octopus"  = "Octopus",
+    "pilchard" = "Pilchard")) +
   labs(
     title = "",
     x = "Bait type",
-    y = "Total abundance"
-  )
+    y = "Total abundance") +
+  theme(legend.position = "none")
 
 
 ggplot(bruv_data, aes(x = bait, y = richness, fill = bait)) +
   geom_boxplot(alpha = 0.7) +
   theme_classic() +
+  scale_x_discrete(
+    labels = c(
+      "abalone"  = "Abalone",
+      "octopus"  = "Octopus",
+      "pilchard" = "Pilchard")) +
   labs(
     title = "",
     x = "Bait type",
@@ -632,9 +661,7 @@ ggplot(preds, aes(x = x, y = predicted)) +
     labels = c(
       "abalone" = "Abalone",
       "pilchard" = "Pilchard",
-      "octopus" = "Octopus"
-    )
-  ) +
+      "octopus" = "Octopus")) +
   labs(
     x = "Bait Type",
     y = "Predicted Total Abundance"
