@@ -155,15 +155,27 @@ bruv_data %>%
 
 ################################################################################
 
-# YA CON LOS DATOS LIMPIOS... PROCEDEMOS HACER EL ANALISIS
+# PROCEDEMOS HACER EL ANALISIS
+
+library(tidyverse)
+
+# Limpiamos nuestra data
+data_nmds <- data_clean %>%
+  filter(!species == "Loliginidae Sepioteuthis australis")%>%
+  filter(!species == "Delphinidae Delphinus delphis") %>%
+  filter(!species == "Unknown Unknown Unknown") %>% # species not to our scope of interest.
+  mutate(species = case_when(
+    species == "Carangidae Pseudocaranx dinjerra"  ~ "Carangidae Pseudocaranx spp",
+    species == "Kyphosidae Kyphosus spp"           ~ "Kyphosidae Kyphosus sydneyanus",
+    species == "Sphyraenidae Sphyraena spp"        ~ "Sphyraenidae Sphyraena novaezelandiae",
+    TRUE                                           ~ species
+  )) # some corrections.
 
 # Primero, necesitamos pasar de formato largo a ancho
 # Creamos nuestra matriz de comunidad
-data_nmds <- data_clean %>%
-  drop_na(species, count) 
-
 community_matrix <- data_nmds %>%
-  select(sample, species, count) %>%
+  group_by(sample, species) %>%
+  summarise(count = sum(count, na.rm = TRUE), .groups = "drop") %>%
   pivot_wider(
     names_from = species,
     values_from = count,
@@ -174,9 +186,12 @@ community_matrix <- data_nmds %>%
 community_matrix_mat <- community_matrix %>%
   column_to_rownames("sample")
 
+# Comprobamos
+dim(community_matrix)
+
+# Hacemos una correcion sqrt para que el nMDS sea mas confiable 
+# esto reduce el peso de especies dominantes
 community_matrix_sqrt <- sqrt(community_matrix_mat) 
-#Aca hacemos una correcion sqrt para que el nMDS sea mas confiable 
-#esto reduce el peso de especies dominante
 
 #ahora tenemos: filas = sample, columnas = especies, valores = abundancia.
 
@@ -199,14 +214,14 @@ nmds$stress ##0.21 is high.
 # Ahora ploteamos
 library(ggplot2)
  
- nmds_scores <- as.data.frame(scores(nmds, display = "sites"))
+nmds_scores <- as.data.frame(scores(nmds, display = "sites"))
 
-## Add metadata columns for grouping
- nmds_scores$location <- bruv_data$location
- nmds_scores$bait     <- bruv_data$bait
+# Add metadata columns for grouping
+nmds_scores$location <- bruv_data$location
+nmds_scores$bait     <- bruv_data$bait
  
 # Bait plot
- ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = bait)) +
+ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = bait)) +
    geom_point(size = 3) +
    stat_ellipse() +
    theme_minimal()
@@ -254,8 +269,9 @@ adonis_result <- adonis2(
 
 adonis_result
 
-# Bait is not significant. These means there is no difference in fish community
-# assemblage by bait type.
+# Fish assemblage structure did not differed among bait types.
+# (PERMANOVA, p = 0.413). Bait type only explains the 2.1% of the total variation 
+# of fish assemblages (R² = 0.021)
 
 # Location
 adonis_result_location <- adonis2(
@@ -267,10 +283,9 @@ adonis_result_location <- adonis2(
 
 adonis_result_location
 
-# Fish assemblage structure differed significantly among locations 
-# (PERMANOVA, F₅,₉₄ = 1.47, p = 0.009), although location explained 
-# a relatively small proportion of the total variation (R² = 0.07).
-# this indicates that while spatial differences exist, 
+# Location explains significantly the fish assemblage composition. 
+# (PERMANOVA, F₅,₉₄ = 1.465, p = 0.009), Location explains the 7.2% of the 
+# variation (R² = 0.07). This indicates that while spatial differences exist, 
 # fish communities are broadly similar across sites.
 
 
@@ -282,6 +297,9 @@ dispersion_bait <- betadisper(
 )
 
 anova(dispersion_bait)
+# We confirm the non- significant PERMANOVA.There were no significant differences 
+# in multivariate dispersion among bait types (PERMDISP, p = 0.24).
+
 
 # Location
 dispersion <- betadisper(
@@ -292,7 +310,7 @@ dispersion <- betadisper(
 anova(dispersion)
 
 # There were no significant differences in multivariate dispersion among 
-# locations (PERMDISP, p = 0.23), indicating that the observed differences 
+# locations (PERMDISP, p = 0.24), indicating that the observed differences 
 # are due to changes in community composition rather than differences in variability.
 
 
@@ -327,16 +345,14 @@ model_abund_mixed <- glmmTMB(total_abundance ~
 
 summary(model_abund_mixed) 
 
-## to compare models with and without location as a random effect you do a 
-## likelihood ratio test (LRT) - see below
-
 model_abund_mixed_reduced <- glmmTMB(total_abundance ~
      macroalgae + scytothalia + canopy + ecklonia + mean_relief + sd_relief + depth + bait,
    family = nbinom2,
    data = bruv_data
 )
+# To compare models with and without location as a random effect we performs 
+# likelihood ratio test (LRT)
 
-##LRT
 anova(model_abund_mixed, model_abund_mixed_reduced)
 
 ## However, now we know that species assemblage changes across the study area
