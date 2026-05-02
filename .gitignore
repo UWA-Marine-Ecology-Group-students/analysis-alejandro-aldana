@@ -2,10 +2,8 @@
 .Rhistory
 .RData
 .Rproj.user/
- 
 # Mac-specific
 .DS_Store
- 
 # Windows-specific
 Thumbs.db
 desktop.ini
