@@ -1,0 +1,4 @@
+Model,No_Par,logLik,AICc,Delta_AICc,wi_AICc
+richness ~ bait + macroalgae + (1 | location),6,-297.27,607.443,0,0.593
+richness ~ bait + canopy + (1 | location),6,-298.303,609.509,2.066,0.211
+richness ~ macroalgae + scytothalia + canopy + ecklonia + mean_relief +     sd_relief + depth + bait + (1 | location),12,-291.034,609.654,2.211,0.196

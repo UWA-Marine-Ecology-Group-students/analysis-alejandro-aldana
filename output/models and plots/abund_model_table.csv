@@ -1,0 +1,5 @@
+Model,No_Par,logLik,AICc,Delta_AICc,wi_AICc
+total_abundance ~ bait + canopy + (1 | location),6,-470.089,953.081,0,0.883
+total_abundance ~ bait + canopy + mean_relief + sd_relief + depth +     (1 | location),9,-468.993,957.985,4.904,0.076
+total_abundance ~ bait + macroalgae + (1 | location),6,-473.604,960.112,7.031,0.026
+total_abundance ~ macroalgae + scytothalia + canopy + ecklonia +     mean_relief + sd_relief + depth + bait + (1 | location),12,-466.88,961.346,8.265,0.014

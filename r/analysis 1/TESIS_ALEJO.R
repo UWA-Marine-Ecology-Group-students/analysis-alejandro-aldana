@@ -179,12 +179,12 @@ community_matrix <- data_nmds %>%
   pivot_wider(
     names_from = species,
     values_from = count,
-    values_fill = 0
-  )
+    values_fill = 0)
 
 
 community_matrix_mat <- community_matrix %>%
-  column_to_rownames("sample")
+  column_to_rownames("sample") %>%
+  as.matrix()
 
 # Comprobamos
 dim(community_matrix)
@@ -217,19 +217,84 @@ nmds_scores <- as.data.frame(scores(nmds, display = "sites"))
 
 # Add metadata columns for grouping
 nmds_scores$location <- bruv_data$location
+location_labels <- c(
+  "arid"     = "Cape Arid",
+  "legrande" = "Cape Legrande",
+  "mart"     = "Marts Island",
+  "middle"   = "Middle Island",
+  "mondrain" = "Mondrain Island",
+  "twin"     = "Twin Peak Islands")
+
 nmds_scores$bait     <- bruv_data$bait
+
  
 # Bait plot
 ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = bait)) +
-   geom_point(size = 2) +
-   stat_ellipse() +
-   theme_classic()
+  geom_point(size = 2, shape = 20) +
+  stat_ellipse() +
+  scale_color_manual(
+    values = c(
+      "abalone"  = "blue",
+      "octopus"  = "red",
+      "pilchard" = "lightgreen"
+    ),
+    labels = c(
+      "abalone"  = "Abalone",
+      "octopus"  = "Octopus",
+      "pilchard" = "Pilchard")) +
+  annotate(
+    "text",
+    x = Inf,
+    y = Inf,
+    label = paste0("Stress = ", round(nmds$stress, 3)),
+    hjust = 1.1,
+    vjust = 1.5,
+    size = 4
+  ) +
+  theme_classic() +
+  labs(
+    color = "Bait type",
+    x = "NMDS1",
+    y = "NMDS2")
  
 # Location plot
+
 ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = location)) +
-  geom_point(size = 2) +
+  geom_point(size = 2, shape = 20) +
   stat_ellipse() +
-  theme_classic()
+  scale_color_manual(
+    values = c(
+      "arid"     = "blue",
+      "legrande" = "red",
+      "mart"     = "lightgreen",
+      "middle"   = "purple",
+      "mondrain" = "orange",
+      "twin"     = "black"
+    ),
+    labels = c(
+      "arid"     = "Cape Arid",
+      "legrande" = "Cape Legrande",
+      "mart"     = "Marts Island",
+      "middle"   = "Middle Island",
+      "mondrain" = "Mondrain Island",
+      "twin"     = "Twin Peak Islands"
+    )
+  ) +
+  annotate(
+    "text",
+    x = Inf,
+    y = Inf,
+    label = paste0("Stress = ", round(nmds$stress, 3)),
+    hjust = 1.1,
+    vjust = 1.5,
+    size = 4
+  ) +
+  theme_classic() +
+  labs(
+    color = "Location",
+    x = "NMDS1",
+    y = "NMDS2"
+  )
 
 # Although 0.16 in nMDS is better, k = 3 is difficult sample()# Although 0.16 in nMDS is better, k = 3 is difficult to visualize in a plot because data is
 # overlaping but permanova shows it is significantly different. That is why the stress of the 
@@ -256,6 +321,12 @@ all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
 #Y corremos el PERMANOVA
 
 library(vegan)
+adonis_general <- adonis2(community_matrix_mat ~ bait * location,
+      data = bruv_data_nmds,
+      permutations = 9999,
+      method="bray") 
+adonis_general
+
 
 # Bait
 adonis_result <- adonis2(
@@ -268,7 +339,7 @@ adonis_result <- adonis2(
 adonis_result
 
 # Fish assemblage structure did not differed among bait types.
-# (PERMANOVA, p = 0.4). Bait type only explains the 2.0% of the total variation 
+# (PERMANOVA, p = 0.419). Bait type only explains the 2.0% of the total variation 
 # of fish assemblages (R² = 0.020)
 
 # Location
@@ -426,6 +497,15 @@ abund_model_table <- tibble(
 # View table
 abund_model_table
 
+# Save
+file.exists("./output/models and plots")
+
+# Save the table
+write.csv(
+  abund_model_table,
+  "./output/models and plots/abund_model_table.csv",
+  row.names = FALSE
+)
 # Models with substantial support: delta AICc <= 2
 best_abund_models <- abund_model_table %>%
   filter(Delta_AICc <= 2) %>%
@@ -525,6 +605,14 @@ rich_model_table <- tibble(
 # View table
 rich_model_table
 
+# Save
+file.exists("./output/models and plots")
+
+# Save the table
+write.csv(
+  rich_model_table,
+  "./output/models and plots/rich_model_table.csv",
+  row.names = FALSE)
 # Models with substantial support: delta AICc <= 2
 best_rich_models <- rich_model_table %>%
   filter(Delta_AICc <= 2) %>%
