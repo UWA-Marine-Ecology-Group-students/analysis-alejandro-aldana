@@ -321,12 +321,11 @@ all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
 #Y corremos el PERMANOVA
 
 library(vegan)
-adonis_general <- adonis2(community_matrix_mat ~ bait * location,
+adonis_general <- adonis2(community_matrix_mat ~ location * bait,
       data = bruv_data_nmds,
       permutations = 9999,
-      method="bray") 
+      method="bray")
 adonis_general
-
 
 # Bait
 adonis_result <- adonis2(
@@ -688,7 +687,7 @@ ggplot(bruv_data, aes(x = location, y = richness, fill = location)) +
   labs(
     title = "",
     x = "Location",
-    y = "Total abundance"
+    y = "Species richness"
   ) +
   theme(legend.position = "none")
 
@@ -721,7 +720,7 @@ ggplot(bruv_data, aes(x = bait, y = richness, fill = bait)) +
   labs(
     title = "",
     x = "Bait type",
-    y = "Species richness"
+    y = "Richness"
   ) +
   theme(legend.position = "none")
 
