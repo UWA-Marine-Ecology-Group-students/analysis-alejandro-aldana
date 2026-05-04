@@ -725,25 +725,23 @@ ggplot(preds, aes(x = x, y = predicted)) +
       "octopus" = "Octopus")) +
   labs(
     x = "Bait Type",
-    y = "Predicted Total Abundance"
-  ) +
+    y = "Predicted Total Abundance") +
   theme_classic()
 
-## if you want to look at your predicted total abundance by your other covariates
-## you just change the terms
-preds2 <- predict_response(model_rich_mixed2,
-                          terms = c("bait"), #will automatically average over other covariates
+# predicted species richness by your other covariates
+preds2 <- predict_response(model_abund_mixed3,
+                          terms = c("canopy"), #will automatically average over other covariates
                           bias_correction = T) 
 preds2
 ggplot(preds2, aes(x = x, y = predicted)) +
   geom_point(size = 1) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
   labs(
-    x = "Bait",
-    y = "Predicted Species Richness"
-  ) +
+    x = "canopy",
+    y = "Predicted Total abundance") +
   theme_classic()
 
+preds3 <- predict_response()
 ## when you are turning your model predictions into plots with a continuous predictor
 ## you should also include your raw data points on your plot
 ## for now I wouldn't bother because we don't care about habitat - we only care about
