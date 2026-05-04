@@ -669,7 +669,7 @@ ggplot(bruv_data, aes(x = location, y = richness, fill = location)) +
       "middle" = "Middle Island",
       "mondrain" = "Mondrain Island",
       "twin" = "Twin Peak Islands")) +
-  labs(x = "Location", y = "Species richness") +
+  labs(x = "Location", y = "Richness") +
   theme_classic() +
   theme(legend.position = "none")
 
@@ -710,9 +710,7 @@ preds <- predict_response(model_abund_mixed3,
 # ignore warning
 
 preds
-plot(preds)
-
-## basic ggplot of predictions
+# basic ggplot of predictions
 glimpse(preds)
 
 library(ggplot2)
@@ -733,16 +731,16 @@ ggplot(preds, aes(x = x, y = predicted)) +
 
 ## if you want to look at your predicted total abundance by your other covariates
 ## you just change the terms
-preds2 <- predict_response(model_abund_mixed3,
-                          terms = c("canopy"), #will automatically average over other covariates
+preds2 <- predict_response(model_rich_mixed2,
+                          terms = c("bait"), #will automatically average over other covariates
                           bias_correction = T) 
 preds2
 ggplot(preds2, aes(x = x, y = predicted)) +
   geom_point(size = 1) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
   labs(
-    x = "Canopy",
-    y = "Predicted Total Abundance"
+    x = "Bait",
+    y = "Predicted Species Richness"
   ) +
   theme_classic()
 
