@@ -212,7 +212,11 @@ nmds$stress ##0.21 is high.
 
 # Ahora ploteamos
 library(ggplot2)
- 
+ ## Define shared colour palette once - using ggplot default colours
+ bait_colours <- c(
+   "abalone"  = "#F8766D",  ## ggplot default red/salmon
+   "octopus"  = "#00BA38",  ## ggplot default green
+   "pilchard" = "#619CFF")   ## ggplot default blue)
 nmds_scores <- as.data.frame(scores(nmds, display = "sites"))
 
 # Add metadata columns for grouping
@@ -232,53 +236,41 @@ nmds_scores$bait     <- bruv_data$bait
 ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = bait)) +
   geom_point(size = 2, shape = 20) +
   stat_ellipse() +
-  scale_color_manual(
-    values = c(
-      "abalone"  = "blue",
-      "octopus"  = "red",
-      "pilchard" = "lightgreen"
-    ),
+  scale_color_manual(                          ## apply same shared colours
+    values = bait_colours,
     labels = c(
       "abalone"  = "Abalone",
       "octopus"  = "Octopus",
       "pilchard" = "Pilchard")) +
-  annotate(
-    "text",
-    x = Inf,
-    y = Inf,
-    label = paste0("Stress = ", round(nmds$stress, 3)),
-    hjust = 1.1,
-    vjust = 1.5,
-    size = 4
-  ) +
+  annotate("text",
+           x     = Inf, y = Inf,
+           label = paste0("Stress = ", round(nmds$stress, 3)),
+           hjust = 1.1, vjust = 1.5, size = 4) +
   theme_classic() +
-  labs(
-    color = "Bait type",
-    x = "NMDS1",
-    y = "NMDS2")
+  labs(color = "Bait type", x = "NMDS1", y = "NMDS2")
  
 # Location plot
-
+## Define shared colour palette - using ggplot default colours
+location_colours <- c(
+  "arid"     = "#FFB3B3",  ## pastel red
+  "legrande" = "#AEC6CF",  ## pastel blue
+  "mart"     = "#B5EAD7",  ## pastel green
+  "middle"   = "#FFDAC1",  ## pastel orange
+  "mondrain" = "#C9B1D9",  ## pastel purple
+  "twin"     = "#FFD1DC"   ## pastel pink
+)
 ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = location)) +
   geom_point(size = 2, shape = 20) +
   stat_ellipse() +
-  scale_color_manual(
-    values = c(
-      "arid"     = "blue",
-      "legrande" = "red",
-      "mart"     = "lightgreen",
-      "middle"   = "purple",
-      "mondrain" = "orange",
-      "twin"     = "black"
-    ),
+  scale_color_manual(                          ## apply same shared colours
+    values = location_colours,
     labels = c(
       "arid"     = "Cape Arid",
       "legrande" = "Cape Legrande",
       "mart"     = "Marts Island",
       "middle"   = "Middle Island",
       "mondrain" = "Mondrain Island",
-      "twin"     = "Twin Peak Islands"
-    )
+      "twin"     = "Twin Peak Islands")
   ) +
   annotate(
     "text",
@@ -287,14 +279,9 @@ ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = location)) +
     label = paste0("Stress = ", round(nmds$stress, 3)),
     hjust = 1.1,
     vjust = 1.5,
-    size = 4
-  ) +
+    size = 4) +
   theme_classic() +
-  labs(
-    color = "Location",
-    x = "NMDS1",
-    y = "NMDS2"
-  )
+  labs(color = "Location", x = "NMDS1", y = "NMDS2")
 
 # Although 0.16 in nMDS is better, k = 3 is difficult sample()# Although 0.16 in nMDS is better, k = 3 is difficult to visualize in a plot because data is
 # overlaping but permanova shows it is significantly different. That is why the stress of the 
@@ -729,7 +716,7 @@ library(ggeffects)
 
 # lets look at bait now - which we really care about even though theres no difference
 preds <- predict_response(model_abund_mixed3,
-         terms = c("bait"), #will automatically average over covariates
+        terms = c("bait"), #will automatically average over covariates
         bias_correction = T) 
 # ignore warning
 
