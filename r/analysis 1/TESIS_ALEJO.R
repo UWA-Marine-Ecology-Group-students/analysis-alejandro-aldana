@@ -212,11 +212,21 @@ nmds$stress ##0.21 is high.
 
 # Ahora ploteamos
 library(ggplot2)
- ## Define shared colour palette once - using ggplot default colours
- bait_colours <- c(
+ # Define shared colour palette once
+bait_colours <- c(
    "abalone"  = "#F8766D",  ## ggplot default red/salmon
    "octopus"  = "#00BA38",  ## ggplot default green
    "pilchard" = "#619CFF")   ## ggplot default blue)
+
+location_colours <- c(
+   "arid"     = "#E41A1C",  ## red
+   "legrande" = "#377EB8",  ## blue
+   "mart"     = "#4DAF4A",  ## green
+   "middle"   = "#FF7F00",  ## orange
+   "mondrain" = "#984EA3",  ## purple
+   "twin"     = "#A65628")   ## brown
+ 
+ 
 nmds_scores <- as.data.frame(scores(nmds, display = "sites"))
 
 # Add metadata columns for grouping
@@ -250,15 +260,7 @@ ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = bait)) +
   labs(color = "Bait type", x = "NMDS1", y = "NMDS2")
  
 # Location plot
-## Define shared colour palette - using ggplot default colours
-location_colours <- c(
-  "arid"     = "#FFB3B3",  ## pastel red
-  "legrande" = "#AEC6CF",  ## pastel blue
-  "mart"     = "#B5EAD7",  ## pastel green
-  "middle"   = "#FFDAC1",  ## pastel orange
-  "mondrain" = "#C9B1D9",  ## pastel purple
-  "twin"     = "#FFD1DC"   ## pastel pink
-)
+
 ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = location)) +
   geom_point(size = 2, shape = 20) +
   stat_ellipse() +
@@ -643,7 +645,7 @@ plotResiduals(res_rich, model_rich_mixed2$macroalgae)
 # Location
 ggplot(bruv_data, aes(x = location, y = total_abundance, fill = location)) +
 geom_boxplot(alpha = 0.7) +
-  theme_classic() +
+  scale_fill_manual(values = location_colours) +
   scale_x_discrete(
     labels = c(
       "arid" = "Cape Arid",
@@ -652,30 +654,23 @@ geom_boxplot(alpha = 0.7) +
       "middle" = "Middle Island",
       "mondrain" = "Mondrain Island",
       "twin" = "Twin Peak Islands")) +
-  labs(
-    title = "",
-    x = "Location",
-    y = "Total abundance"
-  ) +
+  labs(x = "Location", y = "Total abundance") +
+  theme_classic() +
   theme(legend.position = "none")
 
 
 ggplot(bruv_data, aes(x = location, y = richness, fill = location)) +
   geom_boxplot(alpha = 0.7) +
-  theme_classic() +
-  scale_x_discrete(
-    labels = c(
+  scale_fill_manual(values = location_colours) +
+  scale_x_discrete(labels = c(
       "arid" = "Cape Arid",
       "legrande" = "Cape Legrande",
       "mart" = "Marts Island",
       "middle" = "Middle Island",
       "mondrain" = "Mondrain Island",
       "twin" = "Twin Peak Islands")) +
-  labs(
-    title = "",
-    x = "Location",
-    y = "Species richness"
-  ) +
+  labs(x = "Location", y = "Species richness") +
+  theme_classic() +
   theme(legend.position = "none")
 
 # Bait
@@ -683,32 +678,26 @@ ggplot(bruv_data, aes(x = location, y = richness, fill = location)) +
 ggplot(bruv_data, aes(x = bait, y = total_abundance, fill = bait)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(width = 0.15, alpha = 0.6, size = 2) +
-  theme_classic() +
-  scale_x_discrete(
-  labels = c(
+  scale_fill_manual(values = bait_colours) +   ## apply shared colours
+  scale_x_discrete(labels = c(
     "abalone"  = "Abalone",
     "octopus"  = "Octopus",
     "pilchard" = "Pilchard")) +
-  labs(
-    title = "",
-    x = "Bait type",
-    y = "Total abundance") +
+  labs(x = "Bait type", y = "Total abundance") +
+  theme_classic() +
   theme(legend.position = "none")
 
 
 ggplot(bruv_data, aes(x = bait, y = richness, fill = bait)) +
-  geom_boxplot(alpha = 0.7) +
-  theme_classic() +
-  scale_x_discrete(
-    labels = c(
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.15, alpha = 0.6, size = 2) +
+  scale_fill_manual(values = bait_colours) +
+  scale_x_discrete(labels = c(
       "abalone"  = "Abalone",
       "octopus"  = "Octopus",
       "pilchard" = "Pilchard")) +
-  labs(
-    title = "",
-    x = "Bait type",
-    y = "Richness"
-  ) +
+  labs(x = "Bait type", y = "Richness") +
+  theme_classic() +
   theme(legend.position = "none")
 
 ## plotting your predictions from your best model
