@@ -324,6 +324,7 @@ adonis_result <- adonis2(community_matrix_mat ~ bait,
 
 adonis_result
 
+
 # Fish assemblage structure did not differed among bait types.
 # (PERMANOVA, p = 0.4). Bait type only explains ~ 2% of the total variation 
 # of fish assemblages (R² = 0.020)
