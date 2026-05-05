@@ -310,33 +310,29 @@ all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
 #Y corremos el PERMANOVA
 
 library(vegan)
-adonis_general <- adonis2(community_matrix_mat ~ location * bait,
+adonis_general <- adonis2(community_matrix_mat ~ bait * location,
       data = bruv_data_nmds,
       permutations = 9999,
       method="bray")
 adonis_general
 
 # Bait
-adonis_result <- adonis2(
-  community_matrix_mat ~ bait,
+adonis_result <- adonis2(community_matrix_mat ~ bait,
   data = bruv_data_nmds,
   method = "bray",
-  permutations = 9999
-)
+  permutations = 9999)
 
 adonis_result
 
 # Fish assemblage structure did not differed among bait types.
-# (PERMANOVA, p = 0.419). Bait type only explains the 2.0% of the total variation 
+# (PERMANOVA, p = 0.4). Bait type only explains ~ 2% of the total variation 
 # of fish assemblages (R² = 0.020)
 
 # Location
-adonis_result_location <- adonis2(
-  community_matrix_mat ~ location,
+adonis_result_location <- adonis2(community_matrix_mat ~ location,
   data = bruv_data_nmds,
   method = "bray",
-  permutations = 9999
-)
+  permutations = 9999)
 
 adonis_result_location
 
