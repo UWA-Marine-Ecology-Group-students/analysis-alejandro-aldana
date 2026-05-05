@@ -6,7 +6,7 @@ rm(list=ls())
 
 library(tidyverse)
 ###########################################################################
-#Aca simplemente estamos limpiadno los datos
+#Aca simplemente estamos limpiandoo los datos
 
 
 # Load datasets
