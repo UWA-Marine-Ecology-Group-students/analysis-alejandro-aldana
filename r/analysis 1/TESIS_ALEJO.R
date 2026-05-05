@@ -729,15 +729,15 @@ ggplot(preds, aes(x = x, y = predicted)) +
   theme_classic()
 
 # predicted species richness by your other covariates
-preds2 <- predict_response(model_abund_mixed3,
-                          terms = c("canopy"), #will automatically average over other covariates
+preds2 <- predict_response(model_abund_mixed,
+                          terms = c("macroalgae"), #will automatically average over other covariates
                           bias_correction = T) 
 preds2
 ggplot(preds2, aes(x = x, y = predicted)) +
-  geom_point(size = 1) +
+  geom_point(size = 4) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
   labs(
-    x = "canopy",
+    x = "macroalgae",
     y = "Predicted Total abundance") +
   theme_classic()
 
