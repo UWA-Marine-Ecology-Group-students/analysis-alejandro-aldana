@@ -744,3 +744,108 @@ preds3 <- predict_response()
 ## for now I wouldn't bother because we don't care about habitat - we only care about
 ## bait, and habitat was included in the models to control for its effects so we could
 ## see what bait was doing to total abundance/species richness
+
+##-----------------------------------------------------------------------------
+## Canopy predictions with raw data points
+preds_canopy <- predict_response(model_abund_mixed3,
+                          terms = c("canopy"), #will automatically average over covariates
+                          bias_correction = T) 
+# ignore warning
+
+preds_canopy
+
+# Convert to data frame
+preds_df <- as.data.frame(preds_canopy) |>
+  dplyr::rename(canopy = x)
+
+names(bruv_data)
+# Plot
+canopy_preds <- ggplot() +
+  # Raw data points (jittered slightly to reduce overplotting)
+  geom_jitter(data = bruv_data,
+              aes(x = canopy, y = total_abundance),
+              width = 0.3, height = 0,
+              alpha = 0.4, size = 1.8, color = "grey40") +
+  # Confidence ribbon
+  geom_ribbon(data = preds_df,
+              aes(x = canopy, ymin = conf.low, ymax = conf.high),
+              alpha = 0.25, fill = "#2196F3") +
+  # Predicted line
+  geom_line(data = preds_df,
+            aes(x = canopy, y = predicted),
+            color = "#1565C0", linewidth = 1.2) +
+  labs(
+    x = "Large canopy forming macroalgae (%) cover",
+    y = "Predicted abundance",
+  ) +
+  theme_classic(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", margin = margin(b = 10)),
+    axis.line = element_line(color = "grey30")
+  )
+canopy_preds
+
+outdir <- "./plots/"
+
+ggsave(
+  filename = file.path(outdir, "canopy_abundance_plot.png"),
+  plot = canopy_preds,
+  width = 8,
+  height = 6,
+  dpi = 300,
+  bg = "white"
+)
+
+##-----------------------------------------------------------------------------
+## Canopy predictions with raw data points
+
+richness_model <- glmmTMB(richness ~ bait + macroalgae + (1 | location),
+                          family = "nbinom2",
+                          data = bruv_data)
+
+preds_macroalgae <- predict_response(richness_model,
+                                 terms = c("macroalgae"), #will automatically average over covariates
+                                 bias_correction = T) 
+# ignore warning
+
+preds_macroalgae
+
+# Convert to data frame
+preds_df <- as.data.frame(preds_macroalgae) |>
+  dplyr::rename(macroalgae = x) ## need to rename the predictions to match bruv_data column name
+
+
+##
+macro_preds <- ggplot() +
+  # Raw data points (jittered slightly to reduce overplotting)
+  geom_jitter(data = bruv_data,
+              aes(x = macroalgae, y = richness),
+              width = 0.3, height = 0,
+              alpha = 0.4, size = 1.8, color = "grey40") +
+  # Confidence ribbon
+  geom_ribbon(data = preds_df,
+              aes(x = macroalgae, ymin = conf.low, ymax = conf.high),
+              alpha = 0.25, fill = "green3") +
+  # Predicted line
+  geom_line(data = preds_df,
+            aes(x = macroalgae, y = predicted),
+            color = "darkgreen", linewidth = 1.2) +
+  labs(
+    x = "Mixed macroalgae (%) cover",
+    y = "Predicted species richness",
+  ) +
+  theme_classic(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", margin = margin(b = 10)),
+    axis.line = element_line(color = "grey30")
+  )
+macro_preds
+
+ggsave(
+  filename = file.path(outdir, "macroalgae_richness_plot.png"),
+  plot = macro_preds,
+  width = 8,
+  height = 6,
+  dpi = 300,
+  bg = "white"
+)
