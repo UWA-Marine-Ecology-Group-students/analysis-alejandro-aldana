@@ -6,7 +6,7 @@ rm(list=ls())
 
 library(tidyverse)
 ###########################################################################
-#Aca simplemente estamos limpiandoo los datos
+#Aca simplemente estamos limpiando los datos
 
 
 # Load datasets
@@ -149,8 +149,7 @@ bruv_data %>%
   summarise(
     n_bruvs = n_distinct(sample),
     n_locations = n_distinct(location),
-    n_baits = n_distinct(bait)
-  )
+    n_baits = n_distinct(bait))
 
 
 ################################################################################
@@ -168,8 +167,7 @@ data_nmds <- data_clean %>%
     species == "Carangidae Pseudocaranx dinjerra"  ~ "Carangidae Pseudocaranx spp",
     species == "Kyphosidae Kyphosus spp"           ~ "Kyphosidae Kyphosus sydneyanus",
     species == "Sphyraenidae Sphyraena spp"        ~ "Sphyraenidae Sphyraena novaezelandiae",
-    TRUE                                           ~ species
-  )) # some corrections.
+    TRUE                                           ~ species)) # some corrections.
 
 # Primero, necesitamos pasar de formato largo a ancho
 # Creamos nuestra matriz de comunidad
@@ -200,7 +198,7 @@ community_matrix_sqrt <- sqrt(community_matrix_mat)
 library(vegan)
 
 nmds <- metaMDS(
-  community_matrix_mat,
+  community_matrix_sqrt,
   distance = "bray",
   k = 2,
   trymax = 100 )
@@ -208,7 +206,7 @@ nmds <- metaMDS(
 nmds$stress ##0.21 is high. 
 
 # checking if any species occurring in fewer than 2 samples
- which(colSums(community_matrix_mat > 0) <= 2)
+ which(colSums(community_matrix_sqrt > 0) <= 2)
 
 # Ahora ploteamos
 library(ggplot2)
@@ -292,32 +290,32 @@ ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2, color = location)) +
 
 #=================#######    PERMANOVA    #########=============================
 
-nrow(community_matrix_mat)
+nrow(community_matrix_sqrt)
 nrow(bruv_data)
 
 # Crear metadata SOLO para los BRUVS que están en la matriz
 
 bruv_data_nmds <- bruv_data %>%
-  filter(sample %in% rownames(community_matrix_mat)) %>%
-  arrange(match(sample, rownames(community_matrix_mat)))
+  filter(sample %in% rownames(community_matrix_sqrt)) %>%
+  arrange(match(sample, rownames(community_matrix_sqrt)))
 
 # Revisar que coincidan
-nrow(community_matrix_mat)
+nrow(community_matrix_sqrt)
 nrow(bruv_data_nmds)
 # confirmed
-all(rownames(community_matrix_mat) == bruv_data_nmds$sample)
+all(rownames(community_matrix_sqrt) == bruv_data_nmds$sample)
 
 #Y corremos el PERMANOVA
 
 library(vegan)
-adonis_general <- adonis2(community_matrix_mat ~ bait * location,
+adonis_general <- adonis2(community_matrix_sqrt ~ bait * location,
       data = bruv_data_nmds,
       permutations = 9999,
       method="bray")
 adonis_general
 
 # Bait
-adonis_result <- adonis2(community_matrix_mat ~ bait,
+adonis_result <- adonis2(community_matrix_sqrt ~ bait,
   data = bruv_data_nmds,
   method = "bray",
   permutations = 9999)
@@ -325,12 +323,12 @@ adonis_result <- adonis2(community_matrix_mat ~ bait,
 adonis_result
 
 
-# Fish assemblage structure did not differed among bait types.
-# (PERMANOVA, p = 0.4). Bait type only explains ~ 2% of the total variation 
+# There was no statistical evidence of a bait effect on assemblage composition in this dataset.
+# (PERMANOVA, p = 0.1). Bait type only explains ~ 2% of the total variation 
 # of fish assemblages (R² = 0.020)
 
 # Location
-adonis_result_location <- adonis2(community_matrix_mat ~ location,
+adonis_result_location <- adonis2(community_matrix_sqrt ~ location,
   data = bruv_data_nmds,
   method = "bray",
   permutations = 9999)
@@ -346,24 +344,24 @@ adonis_result_location
 #=======### BETADISPER ###========#
 # Bait
 dispersion_bait <- betadisper(
-  vegdist(community_matrix_mat, method = "bray"),
+  vegdist(community_matrix_sqrt, method = "bray"),
   bruv_data_nmds$bait
 )
 
 anova(dispersion_bait)
 # We confirm the non- significant PERMANOVA.There were no significant differences 
-# in multivariate dispersion among bait types (PERMDISP, p = 0.24).
+# in multivariate dispersion among bait types (PERMDISP, p = 0.07).
 
 # Location
 dispersion <- betadisper(
-  vegdist(community_matrix_mat, method = "bray"),
+  vegdist(community_matrix_sqrt, method = "bray"),
   bruv_data_nmds$location
 )
 
 anova(dispersion)
 
 # There were no significant differences in multivariate dispersion among 
-# locations (PERMDISP, p = 0.24), indicating that the observed differences 
+# locations (PERMDISP, p = 0.27), indicating that the observed differences 
 # are due to changes in community composition rather than differences in variability.
 
 
@@ -397,8 +395,6 @@ model_abund_mixed <- glmmTMB(total_abundance ~
   data = bruv_data)
 
 summary(model_abund_mixed)
-
-# Canopy is significant.
 
 # We manually specify the models
 
@@ -501,7 +497,8 @@ best_abund_models
 # Fish abundance was significantly positively associated with canopy (p < 0.001),
 # while remaining habitat variables remained not significant. 
 
-# Best model: total_abundance ~ bait + canopy + (1 | location)
+# Best model: model_abund_mixed3
+# Formula:    total_abundance ~ bait + canopy + (1 | location)
 # Most parsimonious with less predictor variables
 
 ##------------------------------------------------------------------------------
@@ -609,7 +606,8 @@ best_rich_models
 # Variation among locations contributed little to richness and abundance in mixed models,
 # despite some significant differences in overall assemblage structure
 
-# Best model: richness ~ bait + macroalgae + (1 | location)
+# Best model: model_rich_mixed2
+# Formula:    richness ~ bait + macroalgae + (1 | location)
 # Most parsimonious with less predictor variables
 
 #---------------------------
@@ -697,22 +695,21 @@ ggplot(bruv_data, aes(x = bait, y = richness, fill = bait)) +
   theme_classic() +
   theme(legend.position = "none")
 
-## plotting your predictions from your best model
+###--- PREDICTIONS FROM BEST MODEL
 library(ggeffects)
 
 # lets look at bait now - which we really care about even though theres no difference
-preds <- predict_response(model_abund_mixed3,
+preds_abund <- predict_response(model_abund_mixed3,
         terms = c("bait"), #will automatically average over covariates
         bias_correction = T) 
 # ignore warning
-
-preds
+preds_abund
 # basic ggplot of predictions
-glimpse(preds)
+glimpse(preds_abund)
 
 library(ggplot2)
 
-ggplot(preds, aes(x = x, y = predicted)) +
+ggplot(preds_abund, aes(x = x, y = predicted)) +
   geom_point(size = 4) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
   scale_x_discrete(
@@ -725,127 +722,51 @@ ggplot(preds, aes(x = x, y = predicted)) +
     y = "Predicted Total Abundance") +
   theme_classic()
 
-# predicted species richness by your other covariates
-preds2 <- predict_response(model_abund_mixed,
-                          terms = c("macroalgae"), #will automatically average over other covariates
+## lets look at bait and species richness
+preds_rich <- predict_response(model_rich_mixed2,
+                          terms = c("bait"), #will automatically average over covariates
                           bias_correction = T) 
-preds2
-ggplot(preds2, aes(x = x, y = predicted)) +
+
+glimpse(preds_rich)
+
+ggplot(preds_rich, aes(x = x, y = predicted)) +
   geom_point(size = 4) +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
+  scale_x_discrete(labels = c(
+      "abalone" = "Abalone",
+      "pilchard" = "Pilchard",
+      "octopus" = "Octopus")) +
   labs(
-    x = "macroalgae",
-    y = "Predicted Total abundance") +
+    x = "Bait Type",
+    y = "Predicted No. Species") +
   theme_classic()
 
-preds3 <- predict_response()
+# predicted total abundance and habitat covariates
+preds_abund_can <- predict_response(model_abund_mixed3,
+                          terms = c("canopy"), #will automatically average over other covariates
+                          bias_correction = T) 
+preds_abund_can
+ggplot(preds_abund_can, aes(x = x, y = predicted)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  labs(
+    x = "Canopy",
+    y = "Predicted Total Abundance") +
+  theme_classic()
+
+preds_rich_mac <- predict_response(model_rich_mixed2,
+                                    terms = c("macroalgae"), #will automatically average over other covariates
+                                    bias_correction = T) 
+preds_rich_mac
+ggplot(preds_rich_mac, aes(x = x, y = predicted)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  labs(
+    x = "Macroalgae",
+    y = "Predicted No. Species") +
+  theme_classic()
 ## when you are turning your model predictions into plots with a continuous predictor
 ## you should also include your raw data points on your plot
 ## for now I wouldn't bother because we don't care about habitat - we only care about
 ## bait, and habitat was included in the models to control for its effects so we could
 ## see what bait was doing to total abundance/species richness
-
-##-----------------------------------------------------------------------------
-## Canopy predictions with raw data points
-preds_canopy <- predict_response(model_abund_mixed3,
-                          terms = c("canopy"), #will automatically average over covariates
-                          bias_correction = T) 
-# ignore warning
-
-preds_canopy
-
-# Convert to data frame
-preds_df <- as.data.frame(preds_canopy) |>
-  dplyr::rename(canopy = x)
-
-names(bruv_data)
-# Plot
-canopy_preds <- ggplot() +
-  # Raw data points (jittered slightly to reduce overplotting)
-  geom_jitter(data = bruv_data,
-              aes(x = canopy, y = total_abundance),
-              width = 0.3, height = 0,
-              alpha = 0.4, size = 1.8, color = "grey40") +
-  # Confidence ribbon
-  geom_ribbon(data = preds_df,
-              aes(x = canopy, ymin = conf.low, ymax = conf.high),
-              alpha = 0.25, fill = "#2196F3") +
-  # Predicted line
-  geom_line(data = preds_df,
-            aes(x = canopy, y = predicted),
-            color = "#1565C0", linewidth = 1.2) +
-  labs(
-    x = "Large canopy forming macroalgae (%) cover",
-    y = "Predicted abundance",
-  ) +
-  theme_classic(base_size = 13) +
-  theme(
-    plot.title = element_text(face = "bold", margin = margin(b = 10)),
-    axis.line = element_line(color = "grey30")
-  )
-canopy_preds
-
-outdir <- "./plots/"
-
-ggsave(
-  filename = file.path(outdir, "canopy_abundance_plot.png"),
-  plot = canopy_preds,
-  width = 8,
-  height = 6,
-  dpi = 300,
-  bg = "white"
-)
-
-##-----------------------------------------------------------------------------
-## Canopy predictions with raw data points
-
-richness_model <- glmmTMB(richness ~ bait + macroalgae + (1 | location),
-                          family = "nbinom2",
-                          data = bruv_data)
-
-preds_macroalgae <- predict_response(richness_model,
-                                 terms = c("macroalgae"), #will automatically average over covariates
-                                 bias_correction = T) 
-# ignore warning
-
-preds_macroalgae
-
-# Convert to data frame
-preds_df <- as.data.frame(preds_macroalgae) |>
-  dplyr::rename(macroalgae = x) ## need to rename the predictions to match bruv_data column name
-
-
-##
-macro_preds <- ggplot() +
-  # Raw data points (jittered slightly to reduce overplotting)
-  geom_jitter(data = bruv_data,
-              aes(x = macroalgae, y = richness),
-              width = 0.3, height = 0,
-              alpha = 0.4, size = 1.8, color = "grey40") +
-  # Confidence ribbon
-  geom_ribbon(data = preds_df,
-              aes(x = macroalgae, ymin = conf.low, ymax = conf.high),
-              alpha = 0.25, fill = "green3") +
-  # Predicted line
-  geom_line(data = preds_df,
-            aes(x = macroalgae, y = predicted),
-            color = "darkgreen", linewidth = 1.2) +
-  labs(
-    x = "Mixed macroalgae (%) cover",
-    y = "Predicted species richness",
-  ) +
-  theme_classic(base_size = 13) +
-  theme(
-    plot.title = element_text(face = "bold", margin = margin(b = 10)),
-    axis.line = element_line(color = "grey30")
-  )
-macro_preds
-
-ggsave(
-  filename = file.path(outdir, "macroalgae_richness_plot.png"),
-  plot = macro_preds,
-  width = 8,
-  height = 6,
-  dpi = 300,
-  bg = "white"
-)
