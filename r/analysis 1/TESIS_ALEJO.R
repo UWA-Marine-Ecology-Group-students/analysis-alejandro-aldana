@@ -87,6 +87,8 @@ data_clean %>%
 # confirm no NA's present
 colSums(is.na(data_clean))
 
+write.csv(data_clean, "./data/staging/Baitcomp_All_clean_data.csv", row.names = FALSE)
+
 #################################################################################
 #Aca creamos primero un data frame con los datos que realmente nos importa:
 
@@ -324,7 +326,7 @@ adonis_result
 
 
 # There was no statistical evidence of a bait effect on assemblage composition in this dataset.
-# (PERMANOVA, p = 0.1). Bait type only explains ~ 2% of the total variation 
+# (PERMANOVA, p = 0.1543). Bait type only explains ~ 2% of the total variation 
 # of fish assemblages (R² = 0.020)
 
 # Location
@@ -336,7 +338,7 @@ adonis_result_location <- adonis2(community_matrix_sqrt ~ location,
 adonis_result_location
 
 # Location explains significantly the fish assemblage composition. 
-# (PERMANOVA, F₅,₉₄ = 1.465, p = 0.014), Location explains the 7.2% of the 
+# (PERMANOVA, F₅,₉₄ = 1.465, p = 0.0001), Location explains the 7.2% of the 
 # variation (R² = 0.072). This indicates that while spatial differences exist, 
 # fish communities are broadly similar across sites.
 
