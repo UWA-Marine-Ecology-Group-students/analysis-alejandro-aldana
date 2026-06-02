@@ -87,7 +87,12 @@ data_clean %>%
 # confirm no NA's present
 colSums(is.na(data_clean))
 
+# save files
 write.csv(data_clean, "./data/staging/Baitcomp_All_clean_data.csv", row.names = FALSE)
+install.packages("writexl")
+library(writexl)
+write_xlsx(data_clean, "./data/staging/Baitcomp_All_clean_data.xlsx")
+
 
 #################################################################################
 #Aca creamos primero un data frame con los datos que realmente nos importa:
@@ -338,7 +343,7 @@ adonis_result_location <- adonis2(community_matrix_sqrt ~ location,
 adonis_result_location
 
 # Location explains significantly the fish assemblage composition. 
-# (PERMANOVA, F₅,₉₄ = 1.465, p = 0.0001), Location explains the 7.2% of the 
+# (PERMANOVA, F₅,₉₄ = 1.465, p = 0.0001), Location explains the 9.4% of the 
 # variation (R² = 0.072). This indicates that while spatial differences exist, 
 # fish communities are broadly similar across sites.
 
@@ -487,8 +492,11 @@ file.exists("./output/models and plots")
 write.csv(
   abund_model_table,
   "./output/models and plots/abund_model_table.csv",
-  row.names = FALSE
-)
+  row.names = FALSE)
+
+library(writexl)
+write_xlsx(abund_model_table, "./output/models and plots/abund_model_table.xlsx")
+
 # Models with substantial support: delta AICc <= 2
 best_abund_models <- abund_model_table %>%
   filter(Delta_AICc <= 2) %>%
@@ -597,6 +605,10 @@ write.csv(
   rich_model_table,
   "./output/models and plots/rich_model_table.csv",
   row.names = FALSE)
+
+library(writexl)
+write_xlsx(rich_model_table, "./output/models and plots/rich_model_table.xlsx")
+
 # Models with substantial support: delta AICc <= 2
 best_rich_models <- rich_model_table %>%
   filter(Delta_AICc <= 2) %>%
