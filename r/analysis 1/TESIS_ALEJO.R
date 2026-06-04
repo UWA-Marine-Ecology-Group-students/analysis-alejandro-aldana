@@ -545,6 +545,13 @@ model_rich_mixed3 <- glmmTMB(richness ~
 
 summary(model_rich_mixed3)
 
+model_rich_mixed4 <- glmmTMB(richness ~  
+    bait + macroalgae + depth + (1|location), 
+    family = nbinom2,
+    data = bruv_data)
+
+summary(model_rich_mixed4)
+
 #######  MODEL SELECTION TABLE  #######
 
 library(tidyverse)
@@ -554,8 +561,9 @@ library(lme4)     # for nobars(), used to remove random effects from formulas
 # Put all your abundance candidate models into one list
 rich_models <- list(
   random_location      = model_rich_mixed,
-  canopy_relief        = model_rich_mixed2,
-  canopy_deth          = model_rich_mixed3)
+  macroalgae           = model_rich_mixed2,
+  canopy               = model_rich_mixed3,
+  macroalgae_depth     = model_rich_mixed4)
 
 # Function to count fixed predictor terms only
 # This removes random effect
