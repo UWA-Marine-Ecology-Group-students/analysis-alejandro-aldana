@@ -423,6 +423,8 @@ final_table <- bind_rows(base_stats, model_stats) %>%
 
 # Export CSV
 write_csv(final_table, file.path(outdir, "maxn_best_models.csv"))
+library(writexl)
+write_xlsx(final_table, file.path(outdir, "maxn_best_models.xlsx"))
 
 # Display top models
 print(final_table %>% 

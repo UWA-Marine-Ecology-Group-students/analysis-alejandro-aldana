@@ -209,6 +209,7 @@ SR_pois <- glmmTMB(sp_richness ~ bait + (1|location),
                    data = species_richness,
                    family = "poisson")
 
+
 simres.pois <- simulateResiduals(SR_pois, n = 1000)
 plot(simres.pois)          # look for red lines or stars
 testDispersion(simres.pois) # if p > 0.05 and ratio close to 1, Poisson fits well
@@ -240,6 +241,9 @@ AICc(SR_pois, SR_nbinom)
 Anova(SR_pois)
 # bait is not significant as it is >0.05
 performance::r2(SR_pois, tolerance = 1e-10)
+
+Anova(SR_nbinom)
+performance::r2(SR_nbinom, tolerance = 1e-10)
 
 
 ##------------------------------------------------------------------------------
@@ -376,6 +380,8 @@ final_table_sr <- bind_rows(base_stats_sr, model_stats_sr) %>%
 
 ## Save results
 write_csv(final_table_sr, file.path(outdir, "richness_best_models.csv"))
+library(writexl)
+write_xlsx(final_table_sr, file.path(outdir, "richness_best_models.xlsx"))
 
 ## Print top models
 print(final_table_sr %>%
