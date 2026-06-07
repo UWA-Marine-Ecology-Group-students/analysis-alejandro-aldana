@@ -183,8 +183,7 @@ export_dharma <- function(model_list,
 for (d in names(all_models)) {
   export_dharma(
     model_list = all_models[[d]],
-    outdir     = file.path("./output/models and plots", d)
-  )
+    outdir     = file.path("./output/models and plots", d))
 }
 ## Export DHARMa diagnostics for all datasets x models
 for (d in names(all_models)) {
