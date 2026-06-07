@@ -25,7 +25,6 @@ name <- "Baitcomp_All"
 habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
   glimpse()
 
-<<<<<<< HEAD:r/analysis 1/Full subsets GLMM.R
 # read in Count data & join
 
 comc <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
@@ -40,7 +39,7 @@ length(unique(comc$opcode)) #should be 100
 length(unique(comc$site)) #12 sites
 
 checks <- comc %>% 
-=======
+  
 ## read in TA.SR dataframe
 
 ta.sr <- readRDS("./data/tidy/.RDS") %>% ##update with your count dataframe
@@ -66,8 +65,7 @@ sum(total.abund$number)
 length(unique(all.counts$opcode)) #should be 100
 length(unique(all.counts$location)) #12 sites
 
-checks <- all.counts %>% 
->>>>>>> 644dfcc7d6227d05189cd8bdc9cd7d61c33c8fde:r/analysis 1/fullsubsetsGLMMexample.R
+checks <- all.counts %>%
   dplyr::filter(if_any(everything(), is.na))%>%
   glimpse() #should return empty dataframe if no NAs
 
@@ -98,11 +96,8 @@ length(unique(comc$site))
 # plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
 #
 
-<<<<<<< HEAD:r/analysis 1/Full subsets GLMM.R
 ggplot(comc, aes(x = maxn)) +
-=======
 ggplot(total.abund, aes(x = number)) +
->>>>>>> 644dfcc7d6227d05189cd8bdc9cd7d61c33c8fde:r/analysis 1/fullsubsetsGLMMexample.R
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
   labs(title = "Histogram of Maxn Values",
        x = "Maxn Value",
@@ -115,13 +110,11 @@ ggplot(total.abund, aes(x = number)) +
 # plots to see which distribution family best fits the data. To make sure to update the
 # dataframe and the response variable
 
-<<<<<<< HEAD:r/analysis 1/Full subsets GLMM.R
 #            fitting base models with distribution families
 
 maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
                  data = all.counts,
                  family = "poisson")
-=======
 # maxn.pois <- glmmTMB(maxn ~ bait + (1|site), ##change to location instead of site
 #                 data = all.counts, ##just do total.abund now
 #                 family = "poisson")
@@ -142,8 +135,6 @@ maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
 #                         family = compois()) ##this one takes a bit more time to run
 # 
 # AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois) 
->>>>>>> 644dfcc7d6227d05189cd8bdc9cd7d61c33c8fde:r/analysis 1/fullsubsetsGLMMexample.R
-
 
  maxn.nb <- glmmTMB(maxn ~ bait + (1|site),
                      data = all.counts,
@@ -163,15 +154,13 @@ maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
 
 ## Looping through diagnostics & exporting plots
 # exporting all diagnostic plots
-<<<<<<< HEAD:r/analysis 1/Full subsets GLMM.R
 # list models
 models <- list(
    maxn.pois = maxn.pois,
    maxn.nb = maxn.nb,
    maxn.zipois = maxn.zipois,
-   maxn.compois = maxn.compois
-   )
-=======
+   maxn.compois = maxn.compois)
+
 #list models
 # models <- list(
 #   maxn.pois = maxn.pois,
@@ -215,8 +204,6 @@ models <- list(
 #   }
 # }
 # export_dharma(models)
->>>>>>> 644dfcc7d6227d05189cd8bdc9cd7d61c33c8fde:r/analysis 1/fullsubsetsGLMMexample.R
-
  export_dharma <- function(model_list,
                            data,
                            outdir = "./output/maxn/diagnostics") {
