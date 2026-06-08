@@ -574,8 +574,6 @@ rich_final_table <- bind_rows(base_stats_rich, rich_model_stats) %>%
   ) %>%
   arrange(adjAICc)
 
-write_csv(rich_final_table, file.path("./output/models and plots/rich_best_models.csv"))
-
 print(rich_final_table %>%
         select(model, n_predictors, AICc, adjAICc, delta_adjAICc, mR2, cR2))
 
@@ -600,19 +598,32 @@ write_xlsx(best_rich_models, "./output/models and plots/rich_best_models.xlsx")
 # install.packages("DHARMa")
 library(DHARMa)
 
-# Diagnóstico abundancia
-res_abund <- simulateResiduals(model_abund_mixed3, n = 1000) 
-plot(res_abund)
-## extra diagnostic tests 
-testDispersion(res_abund)
-plotResiduals(res_abund, model_abund_mixed3$bait)
-plotResiduals(res_abund, model_abund_mixed3$location) 
-plotResiduals(res_abund, model_abund_mixed3$canopy)
-plotResiduals(res_abund, model_abund_mixed3$macroalgae)
+# Extract the formula string of the top-ranked abundance model
+top_abund_formula <- best_abund_models$model[1]
 
+# Refit the top model
+top_abund_model <- glmmTMB(as.formula(top_abund_formula),
+                           data   = bruv_data,
+                           family = nbinom2)
+# Diagnostico de Abundancia
+res_abund <- simulateResiduals(top_abund_model, n = 1000)
+plot(res_abund)
+testDispersion(res_abund)
+plotResiduals(res_abund, bruv_data$bait)
+plotResiduals(res_abund, bruv_data$location)
+plotResiduals(res_abund, bruv_data$canopy)
+plotResiduals(res_abund, bruv_data$macroalgae)
+
+# Extract the formula string of the top-ranked abundance model
+top_rich_formula <- best_rich_models$model[1]
+
+# Refit the top model
+top_rich_model <- glmmTMB(as.formula(top_rich_formula),
+                           data   = bruv_data,
+                           family = nbinom2)
 
 # Diagnóstico riqueza
-res_rich <- simulateResiduals(model_rich_mixed2, n = 1000)
+res_rich <- simulateResiduals(top_rich_model, n = 1000)
 plot(res_rich)
 ## extra diagnostic tests 
 testDispersion(res_rich) 
