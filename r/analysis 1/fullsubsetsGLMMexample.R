@@ -249,8 +249,7 @@ pred_vars <- c("mean_relief",
 pred_combos <- c(
   combn(pred_vars, 1, simplify = FALSE),
   combn(pred_vars, 2, simplify = FALSE),
-  combn(pred_vars, 3, simplify = FALSE)
-)
+  combn(pred_vars, 3, simplify = FALSE))
 
 # Function to remove predictor conflicts (canopy with scyto, ecklonia or macro)
 # This is because canopy = scytothalia + ecklonia + other large canopy forming macros
@@ -311,7 +310,7 @@ fit_model_and_extract <- function(pred_vector) {
     tryCatch(
       glmmTMB(f, 
               data = comc, ##update
-              family = compois()), ##update
+              family = nbinom2()), ##update
       error = function(e) {
         failure_list[[failure_id <<- failure_id + 1]] <<- tibble(
           model = paste(maxn ~ bait + pred_str + (1|location)), ##update
@@ -323,7 +322,7 @@ fit_model_and_extract <- function(pred_vector) {
     ),
     warning = function(w) {
       failure_list[[failure_id <<- failure_id + 1]] <<- tibble(
-        model = paste("maxn ~ bait +", pred_str, "+ (1|site)"), ##update
+        model = paste(maxn ~ bait + pred_str+ (1|location)), ##update
         type = "WARNING",
         message = w$message
       )

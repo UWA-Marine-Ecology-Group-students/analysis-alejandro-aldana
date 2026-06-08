@@ -253,7 +253,7 @@ performance::r2(SR_nbinom, tolerance = 1e-10)
 ## Base model using Poisson family
 base_model_sr <- glmmTMB(sp_richness ~ bait + (1|location),
                          data = species_richness,
-                         family = "poisson")
+                         family = "nbinom2")
 
 ## Output directory
 outdir <- "./output/models and plots"
