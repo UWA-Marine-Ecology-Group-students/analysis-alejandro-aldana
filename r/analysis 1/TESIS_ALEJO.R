@@ -315,11 +315,12 @@ all(rownames(community_matrix_sqrt) == bruv_data_nmds$sample)
 #Y corremos el PERMANOVA
 
 library(vegan)
-adonis_general <- adonis2(community_matrix_sqrt ~ bait * location,
+adonis_general <- adonis2(community_matrix_sqrt ~ bait + location,
       data = bruv_data_nmds,
       permutations = 9999,
       method="bray")
 adonis_general
+
 
 # Bait
 adonis_result <- adonis2(community_matrix_sqrt ~ bait,
@@ -346,7 +347,7 @@ adonis_result_location
 # (PERMANOVA, F₅,₉₄ = 1.465, p = 0.0001), Location explains the 9.4% of the 
 # variation (R² = 0.072). This indicates that while spatial differences exist, 
 # fish communities are broadly similar across sites.
-
+ adonis2(bruv_data)
 
 #=======### BETADISPER ###========#
 # Bait
@@ -372,255 +373,222 @@ anova(dispersion)
 # are due to changes in community composition rather than differences in variability.
 
 
-#===================######  GLMM  ######================================
-
-#Con los modelos vamos a responder:
-#¿Qué variables de hábitat explican la abundancia y riqueza de peces?
-
+#===================######  FULL-SUBSETS GLMM  ######================================
 library(glmmTMB)
 library(MuMIn)
+library(performance)
+library(tidyverse)
+
 pred_vars <- c("depth",
-               "mean_relief", 
+               "mean_relief",
                "sd_relief",
                "scytothalia",
-               "canopy", 
-               "macroalgae", 
+               "canopy",
+               "macroalgae",
                "ecklonia")
 
+# All predictor combinations: 1, 2, or 3 predictors
+pred_combos <- c(
+  combn(pred_vars, 1, simplify = FALSE),
+  combn(pred_vars, 2, simplify = FALSE),
+  combn(pred_vars, 3, simplify = FALSE))
 
-# GLMM de abundancia 
-# location as random effect
-
-# Does habitat and bait affect the abundance of spatial variance by location
-# each location is allowed to have different average abundance but without estimate
-# each individual comparison for each location
-
-model_abund_mixed <- glmmTMB(total_abundance ~
-    macroalgae + scytothalia + canopy + ecklonia + mean_relief + sd_relief + depth + bait +
-    (1|location),
-  family = nbinom2,
-  data = bruv_data)
-
-summary(model_abund_mixed)
-
-# We manually specify the models
-
-model_abund_mixed2 <- glmmTMB(total_abundance ~  
-    bait + canopy + mean_relief + sd_relief + depth + (1|location), 
-    family = nbinom2,
-    data = bruv_data)
-
-summary(model_abund_mixed2)
-
-anova(model_abund_mixed, model_abund_mixed2)
-
-model_abund_mixed3 <- glmmTMB(total_abundance ~  
-    bait + canopy + (1|location), 
-    family = nbinom2,
-    data = bruv_data)
-
-summary(model_abund_mixed3)
-
-anova(model_abund_mixed3, model_abund_mixed2) #
-
-model_abund_mixed4 <- glmmTMB(total_abundance ~  
-     bait + macroalgae + (1|location), 
-     family = nbinom2,
-     data = bruv_data)
-
-summary(model_abund_mixed4)
-
-anova(model_abund_mixed3, model_abund_mixed4) 
-
-#######  MODEL SELECTION TABLE  #######
-
-library(tidyverse)
-library(MuMIn)
-library(lme4)     # for nobars(), used to remove random effects from formulas
-
-# Put all your abundance candidate models into one list
-abund_models <- list(
-  random_location      = model_abund_mixed,
-  canopy_relief        = model_abund_mixed2,
-  canopy               = model_abund_mixed3,
-  macroalgae           = model_abund_mixed4)
-
-# Function to count fixed predictor terms only
-# This removes random effect
-count_fixed_terms <- function(model) {
-  fixed_formula <- lme4::nobars(formula(model))
-  predictors <- attr(terms(fixed_formula), "term.labels")
-  length(predictors)
+# Remove conflicting combinations
+# canopy = scytothalia + ecklonia + other canopy macros, so these are collinear
+# macroalgae is negatively correlated with canopy
+has_predictor_conflict <- function(pred_vector) {
+  if ("canopy" %in% pred_vector &&
+      ("ecklonia" %in% pred_vector || "scytothalia" %in% pred_vector)) {
+    return(TRUE)
+  }
+  if ("canopy" %in% pred_vector && "macroalgae" %in% pred_vector) {
+    return(TRUE)
+  }
+  return(FALSE)
 }
 
-# Function to extract fixed predictor names only
-get_fixed_terms <- function(model) {
-  fixed_formula <- lme4::nobars(formula(model))
-  predictors <- attr(terms(fixed_formula), "term.labels")
-  paste(predictors, collapse = " + ")
+pred_combos <- Filter(function(x) !has_predictor_conflict(x), pred_combos)
+
+# Safe R2 extractors (tolerance adjusted for near-zero location variance)
+safe_cR2 <- function(model) {
+  tryCatch({
+    r2 <- performance::r2(model, tolerance = 1e-10)
+    return(r2$R2_conditional)
+  }, error = function(e) NA)
 }
 
-# Create AICc model selection table
-abund_model_table <- tibble(
-  model_object = abund_models) %>%
-  mutate(
-    formula = map_chr(model_object, ~ paste(deparse(formula(.x)), collapse = "")),
-    No_Par = map_dbl(model_object, ~ attr(logLik(.x), "df")),
-    logLik = map_dbl(model_object, ~ as.numeric(logLik(.x))),
-    AICc = map_dbl(model_object, MuMIn::AICc)
-  ) %>%
-  mutate(
-    Delta_AICc = AICc - min(AICc),
-    wi_AICc = exp(-0.5 * Delta_AICc) / sum(exp(-0.5 * Delta_AICc))
-  ) %>%
-  arrange(AICc) %>%
-  mutate(
-    across(
-      c(logLik, AICc, Delta_AICc, wi_AICc),
-      ~ round(.x, 3)
-    )
-  ) %>%
-  select(formula, No_Par, logLik, AICc, Delta_AICc, wi_AICc,)
+safe_mR2 <- function(model) {
+  tryCatch({
+    r2 <- performance::r2(model, tolerance = 1e-10)
+    return(r2$R2_marginal)
+  }, error = function(e) NA)
+}
 
-# View table
-abund_model_table
+#------------------------------------------------------------------------------
+# ABUNDANCE: fit all predictor combinations against base model
+#------------------------------------------------------------------------------
 
-# Save
-file.exists("./output/models and plots")
+failure_list_abund <- list()
+failure_id_abund   <- 1
 
-# Save the table
-write.csv(
-  abund_model_table,
-  "./output/models and plots/abund_model_table.csv",
-  row.names = FALSE)
+base_model_abund <- glmmTMB(total_abundance ~ bait + (1 | location),
+                            family = nbinom2,
+                            data   = bruv_data)
+
+fit_abund <- function(pred_vector) {
+  pred_str <- paste(pred_vector, collapse = " + ")
+  f <- as.formula(paste("total_abundance ~ bait +", pred_str, "+ (1 | location)"))
+  
+  m <- withCallingHandlers(
+    tryCatch(
+      glmmTMB(f, data = bruv_data, family = nbinom2),
+      error = function(e) {
+        failure_list_abund[[failure_id_abund <<- failure_id_abund + 1]] <<-
+          tibble(model = deparse(f), type = "ERROR", message = e$message)
+        return(NULL)
+      }
+    ),
+    warning = function(w) {
+      failure_list_abund[[failure_id_abund <<- failure_id_abund + 1]] <<-
+        tibble(model = deparse(f), type = "WARNING", message = w$message)
+      invokeRestart("muffleWarning")
+    }
+  )
+  
+  if (is.null(m)) {
+    return(tibble(model = deparse(f), predictors = pred_str,
+                  AICc = NA, LL = NA, mR2 = NA, cR2 = NA, RDF = NA))
+  }
+  
+  tibble(
+    model      = deparse(f),
+    predictors = pred_str,
+    AICc       = MuMIn::AICc(m),
+    LL         = as.numeric(logLik(m)),
+    mR2        = safe_mR2(m),
+    cR2        = safe_cR2(m),
+    RDF        = df.residual(m)
+  )
+}
+
+base_stats_abund <- tibble(
+  model      = "total_abundance ~ bait + (1 | location)",
+  predictors = "none",
+  AICc       = MuMIn::AICc(base_model_abund),
+  LL         = as.numeric(logLik(base_model_abund)),
+  mR2        = safe_mR2(base_model_abund),
+  cR2        = safe_cR2(base_model_abund),
+  RDF        = df.residual(base_model_abund)
+)
+
+abund_model_stats <- map_dfr(pred_combos, fit_abund)
+
+abund_final_table <- bind_rows(base_stats_abund, abund_model_stats) %>%
+  filter(!is.na(AICc)) %>%
+  mutate(
+    n_predictors   = str_count(predictors, "\\+") + if_else(predictors == "none", 0L, 1L),
+    adjAICc        = AICc + 2 * n_predictors,
+    deltaAICc      = AICc - min(AICc),
+    delta_adjAICc  = adjAICc - min(adjAICc)
+  ) %>%
+  arrange(adjAICc)
+
+write_csv(abund_final_table, file.path("./output/models and plots/abund_best_models.csv"))
 
 library(writexl)
-write_xlsx(abund_model_table, "./output/models and plots/abund_model_table.xlsx")
+write_xlsx(abund_final_table, "./output/models and plots/abund_best_models.xlsx")
+
+print(abund_final_table %>%
+        select(model, n_predictors, AICc, adjAICc, delta_adjAICc, mR2, cR2))
 
 # Models with substantial support: delta AICc <= 2
-best_abund_models <- abund_model_table %>%
-  filter(Delta_AICc <= 2) %>%
-  arrange(No_Par, AICc)
+best_abund_models <- abund_final_table %>%
+  filter(deltaAICc <= 2) %>%
+  arrange(n_predictors, AICc)
 
 best_abund_models
 
-# Fish abundance was significantly positively associated with canopy (p < 0.001),
-# while remaining habitat variables remained not significant. 
+#------------------------------------------------------------------------------
+# RICHNESS: fit all predictor combinations against base model
+#------------------------------------------------------------------------------
 
-# Best model: model_abund_mixed3
-# Formula:    total_abundance ~ bait + canopy + (1 | location)
-# Most parsimonious with less predictor variables
+failure_list_rich <- list()
+failure_id_rich   <- 1
 
-##------------------------------------------------------------------------------
-library(glmmTMB)
-library(tidyverse)
-library(MuMIn)
-library(lme4)
+base_model_rich <- glmmTMB(richness ~ bait + (1 | location),
+                           family = nbinom2,
+                           data   = bruv_data)
 
-# GLMM de riqueza
-
-model_rich_mixed <- glmmTMB(richness ~
-  macroalgae + scytothalia + canopy + ecklonia + mean_relief + sd_relief + depth + bait +
-  (1|location),
-  family = nbinom2,
-  data = bruv_data)
-
-summary(model_rich_mixed)
-
-# Macroalgae is significant.
-
-# We manually specify the models
-
-model_rich_mixed2 <- glmmTMB(richness ~  
-    bait + macroalgae + (1|location),
-    family = nbinom2,
-    data = bruv_data)
-
-summary(model_rich_mixed2)
-
-model_rich_mixed3 <- glmmTMB(richness ~  
-    bait + canopy + (1|location), 
-    family = nbinom2,
-    data = bruv_data)
-
-summary(model_rich_mixed3)
-
-model_rich_mixed4 <- glmmTMB(richness ~  
-    bait + macroalgae + depth + (1|location), 
-    family = nbinom2,
-    data = bruv_data)
-
-summary(model_rich_mixed4)
-
-#######  MODEL SELECTION TABLE  #######
-
-library(tidyverse)
-library(MuMIn)
-library(lme4)     # for nobars(), used to remove random effects from formulas
-
-# Put all your abundance candidate models into one list
-rich_models <- list(
-  random_location      = model_rich_mixed,
-  macroalgae           = model_rich_mixed2,
-  canopy               = model_rich_mixed3,
-  macroalgae_depth     = model_rich_mixed4)
-
-# Function to count fixed predictor terms only
-# This removes random effect
-count_fixed_terms <- function(model) {
-  fixed_formula <- lme4::nobars(formula(model))
-  predictors <- attr(terms(fixed_formula), "term.labels")
-  length(predictors)
+fit_rich <- function(pred_vector) {
+  pred_str <- paste(pred_vector, collapse = " + ")
+  f <- as.formula(paste("richness ~ bait +", pred_str, "+ (1 | location)"))
+  
+  m <- withCallingHandlers(
+    tryCatch(
+      glmmTMB(f, data = bruv_data, family = nbinom2),
+      error = function(e) {
+        failure_list_rich[[failure_id_rich <<- failure_id_rich + 1]] <<-
+          tibble(model = deparse(f), type = "ERROR", message = e$message)
+        return(NULL)
+      }
+    ),
+    warning = function(w) {
+      failure_list_rich[[failure_id_rich <<- failure_id_rich + 1]] <<-
+        tibble(model = deparse(f), type = "WARNING", message = w$message)
+      invokeRestart("muffleWarning")
+    }
+  )
+  
+  if (is.null(m)) {
+    return(tibble(model = deparse(f), predictors = pred_str,
+                  AICc = NA, LL = NA, mR2 = NA, cR2 = NA, RDF = NA))
+  }
+  
+  tibble(
+    model      = deparse(f),
+    predictors = pred_str,
+    AICc       = MuMIn::AICc(m),
+    LL         = as.numeric(logLik(m)),
+    mR2        = safe_mR2(m),
+    cR2        = safe_cR2(m),
+    RDF        = df.residual(m)
+  )
 }
 
-# Function to extract fixed predictor names only
-get_fixed_terms <- function(model) {
-  fixed_formula <- lme4::nobars(formula(model))
-  predictors <- attr(terms(fixed_formula), "term.labels")
-  paste(predictors, collapse = " + ")
-}
+base_stats_rich <- tibble(
+  model      = "richness ~ bait + (1 | location)",
+  predictors = "none",
+  AICc       = MuMIn::AICc(base_model_rich),
+  LL         = as.numeric(logLik(base_model_rich)),
+  mR2        = safe_mR2(base_model_rich),
+  cR2        = safe_cR2(base_model_rich),
+  RDF        = df.residual(base_model_rich)
+)
 
-# Create AICc model selection table
-rich_model_table <- tibble(
-  model_object = rich_models) %>%
+rich_model_stats <- map_dfr(pred_combos, fit_rich)
+
+rich_final_table <- bind_rows(base_stats_rich, rich_model_stats) %>%
+  filter(!is.na(AICc)) %>%
   mutate(
-    formula = map_chr(model_object, ~ paste(deparse(formula(.x)), collapse = "")),
-    No_Par = map_dbl(model_object, ~ attr(logLik(.x), "df")),
-    logLik = map_dbl(model_object, ~ as.numeric(logLik(.x))),
-    AICc = map_dbl(model_object, MuMIn::AICc)
+    n_predictors   = str_count(predictors, "\\+") + if_else(predictors == "none", 0L, 1L),
+    adjAICc        = AICc + 2 * n_predictors,
+    deltaAICc      = AICc - min(AICc),
+    delta_adjAICc  = adjAICc - min(adjAICc)
   ) %>%
-  mutate(
-    Delta_AICc = AICc - min(AICc),
-    wi_AICc = exp(-0.5 * Delta_AICc) / sum(exp(-0.5 * Delta_AICc))
-  ) %>%
-  arrange(AICc) %>%
-  mutate(
-    across(
-      c(logLik, AICc, Delta_AICc, wi_AICc),
-      ~ round(.x, 3)
-    )
-  ) %>%
-  select(formula, No_Par, logLik, AICc, Delta_AICc, wi_AICc,)
+  arrange(adjAICc)
 
-# View table
-rich_model_table
+write_csv(rich_final_table, file.path("./output/models and plots/rich_best_models.csv"))
 
-# Save
-file.exists("./output/models and plots")
-
-# Save the table
-write.csv(
-  rich_model_table,
-  "./output/models and plots/rich_model_table.csv",
-  row.names = FALSE)
+print(rich_final_table %>%
+        select(model, n_predictors, AICc, adjAICc, delta_adjAICc, mR2, cR2))
 
 library(writexl)
-write_xlsx(rich_model_table, "./output/models and plots/rich_model_table.xlsx")
+write_xlsx(rich_final_table, "./output/models and plots/rich_best_models.xlsx")
 
 # Models with substantial support: delta AICc <= 2
-best_rich_models <- rich_model_table %>%
-  filter(Delta_AICc <= 2) %>%
-  arrange(No_Par, AICc)
+best_rich_models <- rich_final_table %>%
+  filter(deltaAICc <= 2) %>%
+  arrange(n_predictors, AICc)
 
 best_rich_models
 

@@ -28,30 +28,45 @@ habitat <- readRDS("./data/tidy/2024_Wudjari_bait_comp_habitat.final.rds")%>%
 # read in Count data & join
 
 comc <- readRDS("./data/staging/Baitcomp_All_complete-count.rds") %>% ## count dataframe
-  left_join(habitat)%>%
+  left_join(habitat, by = c("sample" = "opcode"))%>%
   clean_names() %>%
   glimpse()
 
 # Checking formatting & accuracy of dataframe
 sum(comc$maxn)
-unique(comc$species)
-length(unique(comc$opcode)) #should be 100
-length(unique(comc$site)) #12 sites
+unique(comc$scientific)
+length(unique(comc$sample)) #should be 100
+length(unique(comc$location)) #6 locations
 
-checks <- comc %>% 
+checks <- comc
   
 ## read in TA.SR dataframe
 
-ta.sr <- readRDS("./data/tidy/.RDS") %>% ##update with your count dataframe
-  left_join(habitat, by = sample)%>%
+ta.sr <- readRDS("./data/staging/Baitcomp_All_complete-count.RDS") %>% ##update with your count dataframe
+  left_join(habitat, by = c("sample" = "opcode"))%>%
   clean_names() %>%
   glimpse()
 
 ## filter into 2 separate dataframes for each response
 
 total.abund <- ta.sr %>%
-  dplyr::filter(response == "total abuundance")%>%
-  glimpse()
+  filter(successful_count == "Yes") %>%
+  filter(!scientific %in% c(
+    "Plesiopidae Trachinops noarlungae",
+    "Pempherididae Parapriacanthus elongatus",
+    "Loliginidae Sepioteuthis australis",
+    "Delphinidae Delphinus delphis"
+  )) %>%
+  group_by(sample, location, bait, depth_m,
+           macroalgae, scytothalia, canopy, ecklonia,
+           mean_relief, sd_relief) %>%
+  summarise(total_abundance = sum(count, na.rm = TRUE), .groups = "drop") %>%
+  mutate(
+    sd_relief = if_else(sample == "046" & is.na(sd_relief), 0, sd_relief),
+    location  = as.factor(location),
+    bait      = as.factor(bait),
+    depth_m   = as.numeric(depth_m)
+  )
 
 species.rich <-
 
@@ -59,15 +74,6 @@ species.rich <-
 ################################################
 ## Checking formatting & accuracy of dataframe
 # Note - my dataframe was all.counts - use something different
-sum(total.abund$number)
-# unique(all.counts$species)
-
-length(unique(all.counts$opcode)) #should be 100
-length(unique(all.counts$location)) #12 sites
-
-checks <- all.counts %>%
-  dplyr::filter(if_any(everything(), is.na))%>%
-  glimpse() #should return empty dataframe if no NAs
 
 ## SUMMARY STATS
 # MaxN summary per bait type
@@ -96,11 +102,10 @@ length(unique(comc$site))
 # plot Freq. distribution of MaxNs ## plot Frmin()eq. distribution of MaxNs 
 #
 
-ggplot(comc, aes(x = maxn)) +
-ggplot(total.abund, aes(x = number)) +
+ggplot(total.abund, aes(x = total_abundance)) +
   geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
-  labs(title = "Histogram of Maxn Values",
-       x = "Maxn Value",
+  labs(title = "",
+       x = "Total abundance",
        y = "Count") +
   scale_x_continuous(
     breaks = c(0, 1, 2, 3, 4, 5, 6, 7))+
@@ -112,45 +117,24 @@ ggplot(total.abund, aes(x = number)) +
 
 #            fitting base models with distribution families
 
-maxn.pois <- glmmTMB(maxn ~ bait + (1|site),
-                 data = all.counts,
-                 family = "poisson")
-# maxn.pois <- glmmTMB(maxn ~ bait + (1|site), ##change to location instead of site
-#                 data = all.counts, ##just do total.abund now
-#                 family = "poisson")
-# 
-# 
-# maxn.nb <- glmmTMB(maxn ~ bait + (1|site),
-#                     data = all.counts,
-#                     family = "nbinom2")
-# 
-# 
-# maxn.zipois <- glmmTMB(maxn ~ bait + (1|site),
-#                   ziformula = ~1,   # constant zero-inflation
-#                   family = poisson,
-#                   data = all.counts)
-# 
-# maxn.compois <- glmmTMB(maxn ~ bait + (1|site),
-#                         data = all.counts,
-#                         family = compois()) ##this one takes a bit more time to run
-# 
-# AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois) 
+maxn.pois <- glmmTMB(count ~ bait + (1|location),
+              data = comc,
+              family = "poisson")
 
- maxn.nb <- glmmTMB(maxn ~ bait + (1|site),
-                     data = all.counts,
-                     family = "nbinom2")
+maxn.nb <- glmmTMB(maxn ~ bait + (1|location),
+              data = comc,
+              family = "nbinom2")
+ 
+maxn.zipois <- glmmTMB(maxn ~ bait + (1|location),
+              ziformula = ~1,   # constant zero-inflation
+              family = poisson,
+              data = comc)
+ 
+maxn.compois <- glmmTMB(maxn ~ bait + (1|site),
+              data = comc,
+              family = compois()) ##this one takes a bit more time to run
 
-
- maxn.zipois <- glmmTMB(maxn ~ bait + (1|site),
-                   ziformula = ~1,   # constant zero-inflation
-                   family = poisson,
-                   data = all.counts)
-
- maxn.compois <- glmmTMB(maxn ~ bait + (1|site),
-                         data = all.counts,
-                         family = compois()) ##this one takes a bit more time to run
-
- AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois)
+AICtab(maxn.pois, maxn.nb, maxn.zipois, maxn.compois) 
 
 ## Looping through diagnostics & exporting plots
 # exporting all diagnostic plots
@@ -161,14 +145,6 @@ models <- list(
    maxn.zipois = maxn.zipois,
    maxn.compois = maxn.compois)
 
-#list models
-# models <- list(
-#   maxn.pois = maxn.pois,
-#   maxn.nb = maxn.nb,
-#   maxn.zipois = maxn.zipois,
-#   maxn.compois = maxn.compois
-#   )
-# 
 # # ------------------------------------------------------------
 # export_dharma <- function(model_list,
 #                           data,
@@ -251,8 +227,8 @@ dev.off()
 
 # Base model (bait only) -- this should be the model from above with the chosen distribution family
 
-base_model <- glmmTMB(maxn ~ bait + (1|site), 
-                      data = all.counts, 
+base_model <- glmmTMB(maxn ~ bait + (1|location), 
+                      data = comc , 
                       family = compois())
 
 # Directory
@@ -327,8 +303,7 @@ safe_mR2 <- function(model) {
 fit_model_and_extract <- function(pred_vector) {
   
   pred_str <- paste(pred_vector, collapse = " + ") 
-  f <- as.formula(paste(
-    "maxn ~ bait +", pred_str, "+ (1|site)" ##update green parts from your base model
+  f <- as.formula(paste(maxn ~ bait + pred_str + (1|location) ##update green parts from your base model
   ))
   
   # Fit with full error + warning capture
@@ -339,7 +314,7 @@ fit_model_and_extract <- function(pred_vector) {
               family = compois()), ##update
       error = function(e) {
         failure_list[[failure_id <<- failure_id + 1]] <<- tibble(
-          model = paste("maxn ~ bait +", pred_str, "+ (1|site)"), ##update
+          model = paste(maxn ~ bait + pred_str + (1|location)), ##update
           type = "ERROR",
           message = e$message
         )
