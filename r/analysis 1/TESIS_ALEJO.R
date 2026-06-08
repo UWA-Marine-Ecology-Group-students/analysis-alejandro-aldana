@@ -484,7 +484,7 @@ base_stats_abund <- tibble(
 abund_model_stats <- map_dfr(pred_combos, fit_abund)
 
 abund_final_table <- bind_rows(base_stats_abund, abund_model_stats) %>%
-  filter(!is.na(AICc)) %>%
+    filter(!is.na(AICc)) %>%
   mutate(
     n_predictors   = str_count(predictors, "\\+") + if_else(predictors == "none", 0L, 1L),
     adjAICc        = AICc + 2 * n_predictors,
@@ -567,10 +567,10 @@ rich_model_stats <- map_dfr(pred_combos, fit_rich)
 rich_final_table <- bind_rows(base_stats_rich, rich_model_stats) %>%
   filter(!is.na(AICc)) %>%
   mutate(
-    n_predictors   = str_count(predictors, "\\+") + if_else(predictors == "none", 0L, 1L),
-    adjAICc        = AICc + 2 * n_predictors,
-    deltaAICc      = AICc - min(AICc),
-    delta_adjAICc  = adjAICc - min(adjAICc)
+    n_predictors    = str_count(predictors, "\\+") + if_else(predictors == "none", 0L, 1L),
+    adjAICc         = AICc + 2 * n_predictors,
+    deltaAICc       = AICc - min(AICc),
+    delta_adjAICc   = adjAICc - min(adjAICc)
   ) %>%
   arrange(adjAICc)
 
@@ -696,7 +696,7 @@ ggplot(bruv_data, aes(x = bait, y = richness, fill = bait)) +
 library(ggeffects)
 
 # lets look at bait now - which we really care about even though theres no difference
-preds_abund <- predict_response(model_abund_mixed3,
+preds_abund <- predict_response(top_abund_model,
         terms = c("bait"), #will automatically average over covariates
         bias_correction = T) 
 # ignore warning
@@ -720,7 +720,7 @@ ggplot(preds_abund, aes(x = x, y = predicted)) +
   theme_classic()
 
 ## lets look at bait and species richness
-preds_rich <- predict_response(model_rich_mixed2,
+preds_rich <- predict_response(top_rich_model,
                           terms = c("bait"), #will automatically average over covariates
                           bias_correction = T) 
 
@@ -739,7 +739,7 @@ ggplot(preds_rich, aes(x = x, y = predicted)) +
   theme_classic()
 
 # predicted total abundance and habitat covariates
-preds_abund_can <- predict_response(model_abund_mixed3,
+preds_abund_can <- predict_response(top_abund_model,
                           terms = c("canopy"), #will automatically average over other covariates
                           bias_correction = T) 
 preds_abund_can
@@ -751,7 +751,7 @@ ggplot(preds_abund_can, aes(x = x, y = predicted)) +
     y = "Predicted Total Abundance") +
   theme_classic()
 
-preds_rich_mac <- predict_response(model_rich_mixed2,
+preds_rich_mac <- predict_response(top_rich_model,
                                     terms = c("macroalgae"), #will automatically average over other covariates
                                     bias_correction = T) 
 preds_rich_mac
