@@ -493,11 +493,6 @@ abund_final_table <- bind_rows(base_stats_abund, abund_model_stats) %>%
   ) %>%
   arrange(adjAICc)
 
-write_csv(abund_final_table, file.path("./output/models and plots/abund_best_models.csv"))
-
-library(writexl)
-write_xlsx(abund_final_table, "./output/models and plots/abund_best_models.xlsx")
-
 print(abund_final_table %>%
         select(model, n_predictors, AICc, adjAICc, delta_adjAICc, mR2, cR2))
 
@@ -507,6 +502,8 @@ best_abund_models <- abund_final_table %>%
   arrange(n_predictors, AICc)
 
 best_abund_models
+
+write_xlsx(best_abund_models, "./output/models and plots/abund_best_models.xlsx")
 
 #------------------------------------------------------------------------------
 # RICHNESS: fit all predictor combinations against base model
@@ -582,15 +579,14 @@ write_csv(rich_final_table, file.path("./output/models and plots/rich_best_model
 print(rich_final_table %>%
         select(model, n_predictors, AICc, adjAICc, delta_adjAICc, mR2, cR2))
 
-library(writexl)
-write_xlsx(rich_final_table, "./output/models and plots/rich_best_models.xlsx")
-
 # Models with substantial support: delta AICc <= 2
 best_rich_models <- rich_final_table %>%
   filter(deltaAICc <= 2) %>%
   arrange(n_predictors, AICc)
 
 best_rich_models
+
+write_xlsx(best_rich_models, "./output/models and plots/rich_best_models.xlsx")
 
 # Fish richness was signifcantly influenced by macroalgae (p = 0.028),
 # Variation among locations contributed little to richness and abundance in mixed models,
