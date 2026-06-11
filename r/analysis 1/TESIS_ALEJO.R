@@ -32,7 +32,6 @@ fish <- fish %>%
 habitat_clean <- habitat_clean %>%
   mutate(opcode = as.character(opcode))
 
-
 # Join fish  + habitat
 data_full <- fish %>%
   left_join(habitat_clean, by = c("sample" = "opcode"))
@@ -315,13 +314,6 @@ all(rownames(community_matrix_sqrt) == bruv_data_nmds$sample)
 #Y corremos el PERMANOVA
 
 library(vegan)
-adonis_general <- adonis2(community_matrix_sqrt ~ bait + location,
-      data = bruv_data_nmds,
-      permutations = 9999,
-      method="bray")
-adonis_general
-
-
 # Bait
 adonis_result <- adonis2(community_matrix_sqrt ~ bait,
   data = bruv_data_nmds,
@@ -329,7 +321,6 @@ adonis_result <- adonis2(community_matrix_sqrt ~ bait,
   permutations = 9999)
 
 adonis_result
-
 
 # There was no statistical evidence of a bait effect on assemblage composition in this dataset.
 # (PERMANOVA, p = 0.1543). Bait type only explains ~ 2% of the total variation 
@@ -347,7 +338,70 @@ adonis_result_location
 # (PERMANOVA, F₅,₉₄ = 1.465, p = 0.0001), Location explains the 9.4% of the 
 # variation (R² = 0.072). This indicates that while spatial differences exist, 
 # fish communities are broadly similar across sites.
- adonis2(bruv_data)
+
+#------------------------------------------------------------------------------
+# PAIRWISE PERMANOVA - which locations differ from each other?
+
+library(vegan)
+
+# Get all unique pairs of locations
+locations <- unique(bruv_data_nmds$location)
+pairs <- combn(locations, 2, simplify = FALSE)
+
+# Run adonis2 for each pair
+pairwise_results <- map_dfr(pairs, function(pair) {
+  
+  # Subset data to just these two locations
+  idx <- bruv_data_nmds$location %in% pair
+  mat_sub  <- community_matrix_sqrt[idx, ]
+  meta_sub <- bruv_data_nmds[idx, ]
+  
+  # Run PERMANOVA
+  res <- adonis2(mat_sub ~ location,
+                 data         = meta_sub,
+                 method       = "bray",
+                 permutations = 9999)
+  
+  tibble(
+    location1 = pair[1],
+    location2 = pair[2],
+    F_value   = res$F[1],
+    R2        = res$R2[1],
+    p_value   = res$`Pr(>F)`[1]
+  )
+})
+
+# Apply Bonferroni correction
+pairwise_results <- pairwise_results %>%
+  mutate(p_bonferroni = p.adjust(p_value, method = "bonferroni"))
+
+print(pairwise_results)
+
+#------------------------------------------------------------------------------
+# SIMPER - which species contribute most to dissimilarity between locations?
+
+simper_location <- simper(community_matrix_sqrt,
+                          group        = bruv_data_nmds$location,
+                          permutations = 9999)
+
+# Summary of top contributing species per pairwise comparison
+summary(simper_location, ordered = TRUE)
+
+# If you want to extract results for a specific pair, e.g. arid vs twin:
+simper_location$arid_twin
+
+#------------------------------------------------------------------------------
+# INDICATOR SPECIES ANALYSIS - which species are diagnostic of each location?
+
+# install.packages("indicspecies") if needed
+library(indicspecies)
+
+indval_location <- multipatt(as.data.frame(community_matrix_sqrt),
+                             cluster      = bruv_data_nmds$location,
+                             func         = "r.g",
+                             control      = how(nperm = 9999))
+
+summary(indval_location, indvalcomp = TRUE, alpha = 0.05)
 
 #=======### BETADISPER ###========#
 # Bait
@@ -426,7 +480,6 @@ safe_mR2 <- function(model) {
 
 #------------------------------------------------------------------------------
 # ABUNDANCE: fit all predictor combinations against base model
-#------------------------------------------------------------------------------
 
 failure_list_abund <- list()
 failure_id_abund   <- 1
@@ -507,7 +560,6 @@ write_xlsx(best_abund_models, "./output/models and plots/abund_best_models.xlsx"
 
 #------------------------------------------------------------------------------
 # RICHNESS: fit all predictor combinations against base model
-#------------------------------------------------------------------------------
 
 failure_list_rich <- list()
 failure_id_rich   <- 1
