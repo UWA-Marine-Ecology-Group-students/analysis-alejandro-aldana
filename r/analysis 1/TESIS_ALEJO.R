@@ -339,43 +339,6 @@ adonis_result_location
 # variation (R² = 0.072). This indicates that while spatial differences exist, 
 # fish communities are broadly similar across sites.
 
-#------------------------------------------------------------------------------
-# PAIRWISE PERMANOVA - which locations differ from each other?
-
-library(vegan)
-
-# Get all unique pairs of locations
-locations <- unique(bruv_data_nmds$location)
-pairs <- combn(locations, 2, simplify = FALSE)
-
-# Run adonis2 for each pair
-pairwise_results <- map_dfr(pairs, function(pair) {
-  
-  # Subset data to just these two locations
-  idx <- bruv_data_nmds$location %in% pair
-  mat_sub  <- community_matrix_sqrt[idx, ]
-  meta_sub <- bruv_data_nmds[idx, ]
-  
-  # Run PERMANOVA
-  res <- adonis2(mat_sub ~ location,
-                 data         = meta_sub,
-                 method       = "bray",
-                 permutations = 9999)
-  
-  tibble(
-    location1 = pair[1],
-    location2 = pair[2],
-    F_value   = res$F[1],
-    R2        = res$R2[1],
-    p_value   = res$`Pr(>F)`[1]
-  )
-})
-
-# Apply Bonferroni correction
-pairwise_results <- pairwise_results %>%
-  mutate(p_bonferroni = p.adjust(p_value, method = "bonferroni"))
-
-print(pairwise_results)
 
 #------------------------------------------------------------------------------
 # SIMPER - which species contribute most to dissimilarity between locations?
